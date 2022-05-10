@@ -5,6 +5,16 @@
 //*************************************************************************************************
 #include "Modules.h"
 
+// A expressão aqui é resultado de V_fase * (9V/200V) * (10k/100k)
+// Onde:
+// 220V -> Tensão do primário do transformador de isolação
+// 9V   -> Tensão do secundário do transformador de isolação
+// 10k  -> Resistor do circuito de divisão de tensão do sensor (fixo)
+// 100k -> Ajuste do trimpot do circuito de divisão de tensão do sensor (máx 100k)
+constexpr auto RELACAO_TRANSFORMACAO = (2200.0f/9.0f);
+constexpr auto ZERO_VOLT_VALUE = 1.68f;
+constexpr auto TAXA_AMOSTRAGEM = (1 / 1000.0f);
+
 namespace BaseProject 
 {
 	using namespace System;
@@ -55,20 +65,11 @@ namespace BaseProject
 	private: System::Windows::Forms::ComboBox^  cmboxSerialPorts;
 	private: System::Windows::Forms::TabPage^  tabDAQ;
 	private: System::Windows::Forms::TabPage^  tabADC;
-
-
 	private: System::Windows::Forms::ToolStripStatusLabel^  stLabelConnection;
 	private: System::Windows::Forms::Label^  lblEcho;
 	private: System::Windows::Forms::Button^  btnGetSamples;
 	private: System::Windows::Forms::Button^  btnLeitura;
-
-
 	private: System::Windows::Forms::GroupBox^  gpbxDAQControl;
-
-
-
-
-
 	private: System::Windows::Forms::DataVisualization::Charting::Chart^  chtSignal;
 	private: System::Windows::Forms::ComboBox^  cmboxADCSelection;
 	private: System::Windows::Forms::Label^  lblADCSelection;
@@ -76,29 +77,12 @@ namespace BaseProject
 	private: System::Windows::Forms::Label^  lblAnalogReading;
 	private: System::Windows::Forms::Button^ btnClear;
 	private: System::Windows::Forms::Button^ btnTxtClear;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	private: System::Windows::Forms::CheckBox^ cbxTensao1;
+	private: System::Windows::Forms::CheckBox^ cbxCorrente3;
+	private: System::Windows::Forms::CheckBox^ cbxCorrente2;
+	private: System::Windows::Forms::CheckBox^ cbxCorrente1;
+	private: System::Windows::Forms::CheckBox^ cbxTensao3;
+	private: System::Windows::Forms::CheckBox^ cbxTensao2;
 	private: System::ComponentModel::IContainer^  components;
 	protected:
 	private:
@@ -137,6 +121,12 @@ namespace BaseProject
 			this->tabDAQ = (gcnew System::Windows::Forms::TabPage());
 			this->chtSignal = (gcnew System::Windows::Forms::DataVisualization::Charting::Chart());
 			this->gpbxDAQControl = (gcnew System::Windows::Forms::GroupBox());
+			this->cbxCorrente3 = (gcnew System::Windows::Forms::CheckBox());
+			this->cbxCorrente2 = (gcnew System::Windows::Forms::CheckBox());
+			this->cbxCorrente1 = (gcnew System::Windows::Forms::CheckBox());
+			this->cbxTensao3 = (gcnew System::Windows::Forms::CheckBox());
+			this->cbxTensao2 = (gcnew System::Windows::Forms::CheckBox());
+			this->cbxTensao1 = (gcnew System::Windows::Forms::CheckBox());
 			this->btnClear = (gcnew System::Windows::Forms::Button());
 			this->btnGetSamples = (gcnew System::Windows::Forms::Button());
 			this->tabADC = (gcnew System::Windows::Forms::TabPage());
@@ -297,7 +287,7 @@ namespace BaseProject
 			this->tabDAQ->Padding = System::Windows::Forms::Padding(4);
 			this->tabDAQ->Size = System::Drawing::Size(909, 443);
 			this->tabDAQ->TabIndex = 1;
-			this->tabDAQ->Text = L"DAQ";
+			this->tabDAQ->Text = L"Sinais";
 			// 
 			// chtSignal
 			// 
@@ -305,9 +295,7 @@ namespace BaseProject
 				| System::Windows::Forms::AnchorStyles::Left)
 				| System::Windows::Forms::AnchorStyles::Right));
 			chartArea1->AxisX->Minimum = 0;
-			chartArea1->AxisX->Title = L"Tempo (us)";
-			chartArea1->AxisY->Maximum = 4;
-			chartArea1->AxisY->Minimum = 0;
+			chartArea1->AxisX->Title = L"Tempo (s)";
 			chartArea1->AxisY->Title = L"Tensão (V)";
 			chartArea1->Name = L"Sinais";
 			this->chtSignal->ChartAreas->Add(chartArea1);
@@ -353,6 +341,12 @@ namespace BaseProject
 			// 
 			// gpbxDAQControl
 			// 
+			this->gpbxDAQControl->Controls->Add(this->cbxCorrente3);
+			this->gpbxDAQControl->Controls->Add(this->cbxCorrente2);
+			this->gpbxDAQControl->Controls->Add(this->cbxCorrente1);
+			this->gpbxDAQControl->Controls->Add(this->cbxTensao3);
+			this->gpbxDAQControl->Controls->Add(this->cbxTensao2);
+			this->gpbxDAQControl->Controls->Add(this->cbxTensao1);
 			this->gpbxDAQControl->Controls->Add(this->btnClear);
 			this->gpbxDAQControl->Controls->Add(this->btnGetSamples);
 			this->gpbxDAQControl->Dock = System::Windows::Forms::DockStyle::Top;
@@ -365,6 +359,84 @@ namespace BaseProject
 			this->gpbxDAQControl->TabIndex = 28;
 			this->gpbxDAQControl->TabStop = false;
 			this->gpbxDAQControl->Text = L"Controle de aquisição de dados";
+			// 
+			// cbxCorrente3
+			// 
+			this->cbxCorrente3->AutoSize = true;
+			this->cbxCorrente3->Checked = true;
+			this->cbxCorrente3->CheckState = System::Windows::Forms::CheckState::Checked;
+			this->cbxCorrente3->Location = System::Drawing::Point(640, 47);
+			this->cbxCorrente3->Name = L"cbxCorrente3";
+			this->cbxCorrente3->Size = System::Drawing::Size(90, 20);
+			this->cbxCorrente3->TabIndex = 28;
+			this->cbxCorrente3->Text = L"Corrente 3";
+			this->cbxCorrente3->UseVisualStyleBackColor = true;
+			this->cbxCorrente3->CheckedChanged += gcnew System::EventHandler(this, &MainForm::cbxCorrente3_CheckedChanged);
+			// 
+			// cbxCorrente2
+			// 
+			this->cbxCorrente2->AutoSize = true;
+			this->cbxCorrente2->Checked = true;
+			this->cbxCorrente2->CheckState = System::Windows::Forms::CheckState::Checked;
+			this->cbxCorrente2->Location = System::Drawing::Point(544, 47);
+			this->cbxCorrente2->Name = L"cbxCorrente2";
+			this->cbxCorrente2->Size = System::Drawing::Size(90, 20);
+			this->cbxCorrente2->TabIndex = 27;
+			this->cbxCorrente2->Text = L"Corrente 2";
+			this->cbxCorrente2->UseVisualStyleBackColor = true;
+			this->cbxCorrente2->CheckedChanged += gcnew System::EventHandler(this, &MainForm::cbxCorrente2_CheckedChanged);
+			// 
+			// cbxCorrente1
+			// 
+			this->cbxCorrente1->AutoSize = true;
+			this->cbxCorrente1->Checked = true;
+			this->cbxCorrente1->CheckState = System::Windows::Forms::CheckState::Checked;
+			this->cbxCorrente1->Location = System::Drawing::Point(448, 47);
+			this->cbxCorrente1->Name = L"cbxCorrente1";
+			this->cbxCorrente1->Size = System::Drawing::Size(90, 20);
+			this->cbxCorrente1->TabIndex = 26;
+			this->cbxCorrente1->Text = L"Corrente 1";
+			this->cbxCorrente1->UseVisualStyleBackColor = true;
+			this->cbxCorrente1->CheckedChanged += gcnew System::EventHandler(this, &MainForm::cbxCorrente1_CheckedChanged);
+			// 
+			// cbxTensao3
+			// 
+			this->cbxTensao3->AutoSize = true;
+			this->cbxTensao3->Checked = true;
+			this->cbxTensao3->CheckState = System::Windows::Forms::CheckState::Checked;
+			this->cbxTensao3->Location = System::Drawing::Point(640, 22);
+			this->cbxTensao3->Name = L"cbxTensao3";
+			this->cbxTensao3->Size = System::Drawing::Size(86, 20);
+			this->cbxTensao3->TabIndex = 25;
+			this->cbxTensao3->Text = L"Tensão 3";
+			this->cbxTensao3->UseVisualStyleBackColor = true;
+			this->cbxTensao3->CheckedChanged += gcnew System::EventHandler(this, &MainForm::cbxTensao3_CheckedChanged);
+			// 
+			// cbxTensao2
+			// 
+			this->cbxTensao2->AutoSize = true;
+			this->cbxTensao2->Checked = true;
+			this->cbxTensao2->CheckState = System::Windows::Forms::CheckState::Checked;
+			this->cbxTensao2->Location = System::Drawing::Point(544, 22);
+			this->cbxTensao2->Name = L"cbxTensao2";
+			this->cbxTensao2->Size = System::Drawing::Size(86, 20);
+			this->cbxTensao2->TabIndex = 24;
+			this->cbxTensao2->Text = L"Tensão 2";
+			this->cbxTensao2->UseVisualStyleBackColor = true;
+			this->cbxTensao2->CheckedChanged += gcnew System::EventHandler(this, &MainForm::cbxTensao2_CheckedChanged);
+			// 
+			// cbxTensao1
+			// 
+			this->cbxTensao1->AutoSize = true;
+			this->cbxTensao1->Checked = true;
+			this->cbxTensao1->CheckState = System::Windows::Forms::CheckState::Checked;
+			this->cbxTensao1->Location = System::Drawing::Point(448, 22);
+			this->cbxTensao1->Name = L"cbxTensao1";
+			this->cbxTensao1->Size = System::Drawing::Size(86, 20);
+			this->cbxTensao1->TabIndex = 23;
+			this->cbxTensao1->Text = L"Tensão 1";
+			this->cbxTensao1->UseVisualStyleBackColor = true;
+			this->cbxTensao1->CheckedChanged += gcnew System::EventHandler(this, &MainForm::cbxTensao1_CheckedChanged);
 			// 
 			// btnClear
 			// 
@@ -401,7 +473,7 @@ namespace BaseProject
 			this->tabADC->Name = L"tabADC";
 			this->tabADC->Size = System::Drawing::Size(909, 443);
 			this->tabADC->TabIndex = 2;
-			this->tabADC->Text = L"Porta Analógica";
+			this->tabADC->Text = L"Leitura instantânea";
 			// 
 			// lblLeitura
 			// 
@@ -454,9 +526,9 @@ namespace BaseProject
 			this->lblADCSelection->Location = System::Drawing::Point(11, 10);
 			this->lblADCSelection->Margin = System::Windows::Forms::Padding(4, 0, 4, 0);
 			this->lblADCSelection->Name = L"lblADCSelection";
-			this->lblADCSelection->Size = System::Drawing::Size(50, 20);
+			this->lblADCSelection->Size = System::Drawing::Size(51, 20);
 			this->lblADCSelection->TabIndex = 23;
-			this->lblADCSelection->Text = L"ADC:";
+			this->lblADCSelection->Text = L"Sinal:";
 			// 
 			// btnLeitura
 			// 
@@ -490,6 +562,7 @@ namespace BaseProject
 			this->tabDAQ->ResumeLayout(false);
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->chtSignal))->EndInit();
 			this->gpbxDAQControl->ResumeLayout(false);
+			this->gpbxDAQControl->PerformLayout();
 			this->tabADC->ResumeLayout(false);
 			this->tabADC->PerformLayout();
 			this->ResumeLayout(false);
@@ -499,6 +572,7 @@ namespace BaseProject
 #pragma endregion
 		private:
 			Module ^device;
+			unsigned long long amostra;
 
 			System::Void cmboxSerialPorts_Click(System::Object^  sender, System::EventArgs^  e) 
 			{
@@ -611,15 +685,15 @@ namespace BaseProject
 							chtSignal->Series["Corrente1"]->Points->SuspendUpdates();
 							chtSignal->Series["Corrente2"]->Points->SuspendUpdates();
 							chtSignal->Series["Corrente3"]->Points->SuspendUpdates();
-							
-							// Adicionando os pontos enviados
-							chtSignal->Series["Tensao1"]->Points->Add((3.3f * BitConverter::ToUInt16(buffer, 1)) / 4096);
-							chtSignal->Series["Tensao2"]->Points->Add((3.3f * BitConverter::ToUInt16(buffer, 3)) / 4096);
-							chtSignal->Series["Tensao3"]->Points->Add((3.3f * BitConverter::ToUInt16(buffer, 5)) / 4096);
 
-							chtSignal->Series["Corrente1"]->Points->Add((3.3f * BitConverter::ToUInt16(buffer, 7)) / 4096);
-							chtSignal->Series["Corrente2"]->Points->Add((3.3f * BitConverter::ToUInt16(buffer, 9)) / 4096);
-							chtSignal->Series["Corrente3"]->Points->Add((3.3f * BitConverter::ToUInt16(buffer, 11)) / 4096);
+							// Adicionando os pontos enviados
+							chtSignal->Series["Tensao1"]->Points->AddXY(amostra * TAXA_AMOSTRAGEM, ((BitConverter::ToUInt16(buffer, 1) / 1000.0f) - ZERO_VOLT_VALUE) * RELACAO_TRANSFORMACAO);
+							chtSignal->Series["Tensao2"]->Points->AddXY(amostra * TAXA_AMOSTRAGEM, ((BitConverter::ToUInt16(buffer, 3) / 1000.0f) - ZERO_VOLT_VALUE) * RELACAO_TRANSFORMACAO);
+							chtSignal->Series["Tensao3"]->Points->AddXY(amostra * TAXA_AMOSTRAGEM, ((BitConverter::ToUInt16(buffer, 5) / 1000.0f) - ZERO_VOLT_VALUE) * RELACAO_TRANSFORMACAO);
+
+							chtSignal->Series["Corrente1"]->Points->AddXY(amostra * TAXA_AMOSTRAGEM, BitConverter::ToUInt16(buffer, 7) / 1000.0f);
+							chtSignal->Series["Corrente2"]->Points->AddXY(amostra * TAXA_AMOSTRAGEM, BitConverter::ToUInt16(buffer, 9) / 1000.0f);
+							chtSignal->Series["Corrente3"]->Points->AddXY(amostra * TAXA_AMOSTRAGEM, BitConverter::ToUInt16(buffer, 11) / 1000.0f);
 
 							// Restaura a atualização do gráfico
 							chtSignal->Series["Tensao1"]->Points->ResumeUpdates();
@@ -629,9 +703,11 @@ namespace BaseProject
 							chtSignal->Series["Corrente1"]->Points->ResumeUpdates();
 							chtSignal->Series["Corrente2"]->Points->ResumeUpdates();
 							chtSignal->Series["Corrente3"]->Points->ResumeUpdates();
+
+							amostra++;
 							break;
 						case CMD_GET_ADC_READING:
-							tmpFloat = (3.3f * BitConverter::ToUInt16(buffer, 1)) / 4096;
+							tmpFloat = BitConverter::ToUInt16(buffer, 1) / 1000.0f;
 							
 							switch (cmboxADCSelection->SelectedIndex)
 							{
@@ -726,6 +802,7 @@ namespace BaseProject
 				if (device->Connected)
 				{
 					array<unsigned char>^buffer = gcnew array<unsigned char>(6);
+					amostra = 0;
 
 					buffer[0] = 0xAA;
 					buffer[1] = 0x55;
@@ -792,6 +869,30 @@ namespace BaseProject
 			System::Void btnTxtClear_Click(System::Object^ sender, System::EventArgs^ e) 
 			{
 				txtMessages->Clear();
+			}
+			System::Void cbxTensao1_CheckedChanged(System::Object^ sender, System::EventArgs^ e) 
+			{
+				chtSignal->Series["Tensao1"]->Enabled = cbxTensao1->Checked;
+			}
+			System::Void cbxCorrente1_CheckedChanged(System::Object^ sender, System::EventArgs^ e) 
+			{
+				chtSignal->Series["Corrente1"]->Enabled = cbxCorrente1->Checked;
+			}
+			System::Void cbxTensao2_CheckedChanged(System::Object^ sender, System::EventArgs^ e) 
+			{
+				chtSignal->Series["Tensao2"]->Enabled = cbxTensao2->Checked;
+			}
+			System::Void cbxCorrente2_CheckedChanged(System::Object^ sender, System::EventArgs^ e) 
+			{
+				chtSignal->Series["Corrente2"]->Enabled = cbxCorrente2->Checked;
+			}
+			System::Void cbxTensao3_CheckedChanged(System::Object^ sender, System::EventArgs^ e) 
+			{
+				chtSignal->Series["Tensao3"]->Enabled = cbxTensao3->Checked;
+			}
+			System::Void cbxCorrente3_CheckedChanged(System::Object^ sender, System::EventArgs^ e) 
+			{
+				chtSignal->Series["Corrente3"]->Enabled = cbxCorrente3->Checked;
 			}
 };
 }
