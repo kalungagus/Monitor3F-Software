@@ -45,9 +45,10 @@ namespace Modules
 			Thread^ ReceptionThread;
 			int rcvPos, rcvLimit;
 			unsigned char chkSum;
-			array<Byte>^ receptionBuffer;
+			array<Byte>^ receptionBuffer, ^lastReceptionBuffer;
 			int dataPos = 0;
 			int state = 0;
+			long long packetCounter = 0;
 
 		public:
 			CommLayer ^Comm;
@@ -137,11 +138,19 @@ namespace Modules
 				else
 					return (0);
 			}
+			void Clear(void)
+			{
+				if (Object::ReferenceEquals(Comm, nullptr) == false)
+				{
+					Comm->Clear();
+				}
+			}
+
 			// Rotina de tratamento de recepção
 			void ReceptionService(void)
 			{
-				int bytePos = 0, bytesToRead, readedBytes;
-				array<unsigned char>^ header = gcnew array<Byte>(4);
+				int readedBytes;
+				array<unsigned char>^ header = gcnew array<Byte>(3);
 
 				while (Comm->Connected)
 				{
@@ -149,27 +158,32 @@ namespace Modules
 					{
 						if (Comm->BytesToRead)
 						{
-							readedBytes = Comm->Read(header, 0, header->Length);
-							if (header[0] == 0xAA && header[1] == 0x55)
+							if (Comm->Read(header, 0, 1) && header[0] == 0xAA)
 							{
-								bytesToRead = BitConverter::ToUInt16(header, 2);
-								receptionBuffer = gcnew array<Byte>(bytesToRead);
-								readedBytes = 0;
+								if (Comm->Read(header, 1, 1) && header[1] == 0x55)
+								{
+									Comm->Read(header, 2, 1);
+									receptionBuffer = gcnew array<Byte>(header[2]);
+									readedBytes = 0;
+									packetCounter++;
 
-								while (readedBytes < bytesToRead)
-									readedBytes += Comm->Read(receptionBuffer, 0, receptionBuffer->Length);
+									while (readedBytes < header[2])
+										readedBytes += Comm->Read(receptionBuffer, readedBytes, receptionBuffer->Length - readedBytes);
 
-								onReceive(this, receptionBuffer);
+									onReceive(this, receptionBuffer);
+								}
 							}
+						}
+						else
+						{
+							Thread::Sleep(10);
 						}
 					}
 					catch (System::IO::IOException ^)
 					{
 						onDisconnection(this);
-						continue;
+						return;
 					}
-
-					Thread::Sleep(10);
 				}
 			}
 	};

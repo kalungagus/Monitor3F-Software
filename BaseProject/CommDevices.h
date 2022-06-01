@@ -198,6 +198,7 @@ namespace CommDevices
 			virtual int Read(array<unsigned char>^ buffer, int offset, int size) abstract;
 			virtual void Open(void) abstract;
 			virtual void Close(void) abstract;
+			virtual void Clear(void) abstract;
 	};
 
 	//**********************************************************************************************************
@@ -208,6 +209,7 @@ namespace CommDevices
 		private:
 			SerialPort ^virtualSerial;
 			String^ VirtualComm;
+			long int baudRate = 115200;
 
 		public:
 			//==================================================================================================
@@ -266,7 +268,7 @@ namespace CommDevices
 				{
 					if (state == true)
 					{
-						virtualSerial = gcnew SerialPort(VirtualComm, 115200, Parity::None, 8, StopBits::One);
+						virtualSerial = gcnew SerialPort(VirtualComm, baudRate, Parity::None, 8, StopBits::One);
 						try
 						{
 							virtualSerial->Open();
@@ -312,6 +314,19 @@ namespace CommDevices
 				virtual Stream ^get(void) override
 				{
 					return(virtualSerial->BaseStream);
+				}
+			}
+
+			// Propriedade que define a porta virtual que será utilizada.
+			property long int BaudRate
+			{
+				long int get(void)
+				{
+					return(baudRate);
+				}
+				void set(long int baud)
+				{
+					baudRate = baud;
 				}
 			}
 
@@ -431,6 +446,11 @@ namespace CommDevices
 					virtualSerial = nullptr;
 				}
 
+			}
+			virtual void Clear(void) override
+			{
+				if (virtualSerial != nullptr)
+					virtualSerial->DiscardInBuffer();
 			}
 	};
 
@@ -671,6 +691,11 @@ namespace CommDevices
 						tcpClient = nullptr;
 					}
 				}
+			}
+			virtual void Clear(void) override
+			{
+				if (tcpClient != nullptr)
+					tcpClient->GetStream()->Flush();
 			}
 	};
 }

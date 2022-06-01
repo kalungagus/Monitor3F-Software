@@ -4,16 +4,19 @@
 // Data: 14/05/2020
 //*************************************************************************************************
 #include "Modules.h"
+#include "AnalogSignals.h"
 
-// A expressão aqui é resultado de V_fase * (9V/200V) * (10k/100k)
+// A expressão aqui é resultado de V_fase * (9V/220V) * (10k/(10k + 100k))
 // Onde:
 // 220V -> Tensão do primário do transformador de isolação
 // 9V   -> Tensão do secundário do transformador de isolação
 // 10k  -> Resistor do circuito de divisão de tensão do sensor (fixo)
 // 100k -> Ajuste do trimpot do circuito de divisão de tensão do sensor (máx 100k)
-constexpr auto RELACAO_TRANSFORMACAO = (2200.0f/9.0f);
+//constexpr auto RELACAO_TRANSFORMACAO = (2420.0f/9.0f);
+constexpr auto RELACAO_TRANSFORMACAO = 11.0f;
 constexpr auto ZERO_VOLT_VALUE = 1.68f;
 constexpr auto TAXA_AMOSTRAGEM = (1 / 1000.0f);
+constexpr auto UPDATE_AT_SAMPLE = 200;
 
 namespace BaseProject 
 {
@@ -26,8 +29,10 @@ namespace BaseProject
 	using namespace System::IO::Ports;
 	using namespace System::IO;
 	using namespace System::Text;
+	using namespace System::Configuration;
 	using namespace CommDevices;
 	using namespace Modules;
+	using namespace AnalogSignals;
 
 	/// <summary>
 	/// Sumário para MainForm
@@ -35,7 +40,7 @@ namespace BaseProject
 	public ref class MainForm : public System::Windows::Forms::Form
 	{
 	public:
-		MainForm(void)
+		MainForm(void) : amostra(0)
 		{
 			InitializeComponent();
 			//
@@ -55,7 +60,6 @@ namespace BaseProject
 			}
 		}
 	private: System::Windows::Forms::StatusStrip^  statusStrip1;
-	protected:
 	private: System::Windows::Forms::TabControl^  tabCtrlApplication;
 	private: System::Windows::Forms::TabPage^  tabModule;
 	private: System::Windows::Forms::TextBox^  txtSendMessage;
@@ -83,7 +87,62 @@ namespace BaseProject
 	private: System::Windows::Forms::CheckBox^ cbxCorrente1;
 	private: System::Windows::Forms::CheckBox^ cbxTensao3;
 	private: System::Windows::Forms::CheckBox^ cbxTensao2;
-	private: System::ComponentModel::IContainer^  components;
+	private: System::Windows::Forms::ComboBox^ cbxResolution;
+	private: System::Windows::Forms::Label^ lblResolution;
+	private: System::Windows::Forms::TabPage^ tabConfig;
+	private: System::Windows::Forms::TextBox^ txtSecundarioT3;
+	private: System::Windows::Forms::Label^ lblSecundarioT3;
+	private: System::Windows::Forms::TextBox^ txtPrimarioT3;
+	private: System::Windows::Forms::Label^ lblPrimarioT3;
+	private: System::Windows::Forms::TextBox^ txtSecundarioT2;
+	private: System::Windows::Forms::Label^ lblSecundarioT2;
+	private: System::Windows::Forms::TextBox^ txtPrimarioT2;
+	private: System::Windows::Forms::Label^ lblPrimarioT2;
+	private: System::Windows::Forms::TextBox^ txtSecundarioT1;
+	private: System::Windows::Forms::Label^ lblSecundarioT1;
+	private: System::Windows::Forms::TextBox^ txtPrimarioT1;
+	private: System::Windows::Forms::Label^ lblPrimarioT1;
+	private: System::Windows::Forms::TextBox^ txtSecundarioTC3;
+	private: System::Windows::Forms::Label^ lblSecundarioTC3;
+	private: System::Windows::Forms::TextBox^ txtPrimarioTC3;
+	private: System::Windows::Forms::Label^ lblPrimarioTC3;
+	private: System::Windows::Forms::TextBox^ txtSecundarioTC2;
+	private: System::Windows::Forms::Label^ lblSecundarioTC2;
+	private: System::Windows::Forms::TextBox^ txtPrimarioTC2;
+	private: System::Windows::Forms::Label^ lblPrimarioTC2;
+	private: System::Windows::Forms::TextBox^ txtSecundarioTC1;
+	private: System::Windows::Forms::Label^ lblSecundarioTC1;
+	private: System::Windows::Forms::TextBox^ txtPrimarioTC1;
+	private: System::Windows::Forms::Label^ lblPrimarioTC1;
+	private: System::Windows::Forms::GroupBox^ gpbxTrafos;
+	private: System::Windows::Forms::GroupBox^ gpbxConfigRes;
+	private: System::Windows::Forms::TabPage^ tabWiFi;
+	private: System::Windows::Forms::Label^ lblRes6;
+	private: System::Windows::Forms::TextBox^ txtRes6;
+	private: System::Windows::Forms::Label^ lblRes7;
+	private: System::Windows::Forms::TextBox^ txtRes7;
+	private: System::Windows::Forms::Label^ lblRes8;
+	private: System::Windows::Forms::TextBox^ txtRes8;
+	private: System::Windows::Forms::Label^ lblRes9;
+	private: System::Windows::Forms::TextBox^ txtRes3;
+	private: System::Windows::Forms::TextBox^ txtRes9;
+	private: System::Windows::Forms::Label^ lblRes3;
+	private: System::Windows::Forms::Label^ lblRes10;
+	private: System::Windows::Forms::TextBox^ txtRes2;
+	private: System::Windows::Forms::TextBox^ txtRes10;
+	private: System::Windows::Forms::Label^ lblRes2;
+	private: System::Windows::Forms::Label^ lblRes11;
+	private: System::Windows::Forms::TextBox^ txtRes1;
+	private: System::Windows::Forms::TextBox^ txtRes11;
+	private: System::Windows::Forms::Label^ lblRes1;
+	private: System::Windows::Forms::Label^ lblADCReading;
+	private: System::Windows::Forms::Label^ lblADCReadingValue;
+	private: System::Windows::Forms::Button^ btnSave;
+	private: System::Windows::Forms::SaveFileDialog^ dlgSaveCSV;
+	private: System::Windows::Forms::CheckBox^ cbxPotencia3;
+	private: System::Windows::Forms::CheckBox^ cbxPotencia2;
+	private: System::Windows::Forms::CheckBox^ cbxPotencia1;
+	private: System::ComponentModel::IContainer^ components;
 	protected:
 	private:
 		/// <summary>
@@ -106,6 +165,9 @@ namespace BaseProject
 			System::Windows::Forms::DataVisualization::Charting::Series^ series4 = (gcnew System::Windows::Forms::DataVisualization::Charting::Series());
 			System::Windows::Forms::DataVisualization::Charting::Series^ series5 = (gcnew System::Windows::Forms::DataVisualization::Charting::Series());
 			System::Windows::Forms::DataVisualization::Charting::Series^ series6 = (gcnew System::Windows::Forms::DataVisualization::Charting::Series());
+			System::Windows::Forms::DataVisualization::Charting::Series^ series7 = (gcnew System::Windows::Forms::DataVisualization::Charting::Series());
+			System::Windows::Forms::DataVisualization::Charting::Series^ series8 = (gcnew System::Windows::Forms::DataVisualization::Charting::Series());
+			System::Windows::Forms::DataVisualization::Charting::Series^ series9 = (gcnew System::Windows::Forms::DataVisualization::Charting::Series());
 			System::ComponentModel::ComponentResourceManager^ resources = (gcnew System::ComponentModel::ComponentResourceManager(MainForm::typeid));
 			this->statusStrip1 = (gcnew System::Windows::Forms::StatusStrip());
 			this->stLabelConnection = (gcnew System::Windows::Forms::ToolStripStatusLabel());
@@ -121,6 +183,12 @@ namespace BaseProject
 			this->tabDAQ = (gcnew System::Windows::Forms::TabPage());
 			this->chtSignal = (gcnew System::Windows::Forms::DataVisualization::Charting::Chart());
 			this->gpbxDAQControl = (gcnew System::Windows::Forms::GroupBox());
+			this->cbxPotencia3 = (gcnew System::Windows::Forms::CheckBox());
+			this->cbxPotencia2 = (gcnew System::Windows::Forms::CheckBox());
+			this->cbxPotencia1 = (gcnew System::Windows::Forms::CheckBox());
+			this->btnSave = (gcnew System::Windows::Forms::Button());
+			this->cbxResolution = (gcnew System::Windows::Forms::ComboBox());
+			this->lblResolution = (gcnew System::Windows::Forms::Label());
 			this->cbxCorrente3 = (gcnew System::Windows::Forms::CheckBox());
 			this->cbxCorrente2 = (gcnew System::Windows::Forms::CheckBox());
 			this->cbxCorrente1 = (gcnew System::Windows::Forms::CheckBox());
@@ -130,11 +198,60 @@ namespace BaseProject
 			this->btnClear = (gcnew System::Windows::Forms::Button());
 			this->btnGetSamples = (gcnew System::Windows::Forms::Button());
 			this->tabADC = (gcnew System::Windows::Forms::TabPage());
+			this->lblADCReading = (gcnew System::Windows::Forms::Label());
+			this->lblADCReadingValue = (gcnew System::Windows::Forms::Label());
 			this->lblLeitura = (gcnew System::Windows::Forms::Label());
 			this->lblAnalogReading = (gcnew System::Windows::Forms::Label());
 			this->cmboxADCSelection = (gcnew System::Windows::Forms::ComboBox());
 			this->lblADCSelection = (gcnew System::Windows::Forms::Label());
 			this->btnLeitura = (gcnew System::Windows::Forms::Button());
+			this->tabConfig = (gcnew System::Windows::Forms::TabPage());
+			this->gpbxConfigRes = (gcnew System::Windows::Forms::GroupBox());
+			this->lblRes6 = (gcnew System::Windows::Forms::Label());
+			this->txtRes6 = (gcnew System::Windows::Forms::TextBox());
+			this->lblRes7 = (gcnew System::Windows::Forms::Label());
+			this->txtRes7 = (gcnew System::Windows::Forms::TextBox());
+			this->lblRes8 = (gcnew System::Windows::Forms::Label());
+			this->txtRes8 = (gcnew System::Windows::Forms::TextBox());
+			this->lblRes9 = (gcnew System::Windows::Forms::Label());
+			this->txtRes3 = (gcnew System::Windows::Forms::TextBox());
+			this->txtRes9 = (gcnew System::Windows::Forms::TextBox());
+			this->lblRes3 = (gcnew System::Windows::Forms::Label());
+			this->lblRes10 = (gcnew System::Windows::Forms::Label());
+			this->txtRes2 = (gcnew System::Windows::Forms::TextBox());
+			this->txtRes10 = (gcnew System::Windows::Forms::TextBox());
+			this->lblRes2 = (gcnew System::Windows::Forms::Label());
+			this->lblRes11 = (gcnew System::Windows::Forms::Label());
+			this->txtRes1 = (gcnew System::Windows::Forms::TextBox());
+			this->txtRes11 = (gcnew System::Windows::Forms::TextBox());
+			this->lblRes1 = (gcnew System::Windows::Forms::Label());
+			this->gpbxTrafos = (gcnew System::Windows::Forms::GroupBox());
+			this->lblPrimarioT1 = (gcnew System::Windows::Forms::Label());
+			this->txtSecundarioTC3 = (gcnew System::Windows::Forms::TextBox());
+			this->txtPrimarioT1 = (gcnew System::Windows::Forms::TextBox());
+			this->lblSecundarioTC3 = (gcnew System::Windows::Forms::Label());
+			this->lblSecundarioT1 = (gcnew System::Windows::Forms::Label());
+			this->txtPrimarioTC3 = (gcnew System::Windows::Forms::TextBox());
+			this->txtSecundarioT1 = (gcnew System::Windows::Forms::TextBox());
+			this->lblPrimarioTC3 = (gcnew System::Windows::Forms::Label());
+			this->lblPrimarioT2 = (gcnew System::Windows::Forms::Label());
+			this->txtSecundarioTC2 = (gcnew System::Windows::Forms::TextBox());
+			this->txtPrimarioT2 = (gcnew System::Windows::Forms::TextBox());
+			this->lblSecundarioTC2 = (gcnew System::Windows::Forms::Label());
+			this->lblSecundarioT2 = (gcnew System::Windows::Forms::Label());
+			this->txtPrimarioTC2 = (gcnew System::Windows::Forms::TextBox());
+			this->txtSecundarioT2 = (gcnew System::Windows::Forms::TextBox());
+			this->lblPrimarioTC2 = (gcnew System::Windows::Forms::Label());
+			this->lblPrimarioT3 = (gcnew System::Windows::Forms::Label());
+			this->txtSecundarioTC1 = (gcnew System::Windows::Forms::TextBox());
+			this->txtPrimarioT3 = (gcnew System::Windows::Forms::TextBox());
+			this->lblSecundarioTC1 = (gcnew System::Windows::Forms::Label());
+			this->lblSecundarioT3 = (gcnew System::Windows::Forms::Label());
+			this->txtPrimarioTC1 = (gcnew System::Windows::Forms::TextBox());
+			this->txtSecundarioT3 = (gcnew System::Windows::Forms::TextBox());
+			this->lblPrimarioTC1 = (gcnew System::Windows::Forms::Label());
+			this->tabWiFi = (gcnew System::Windows::Forms::TabPage());
+			this->dlgSaveCSV = (gcnew System::Windows::Forms::SaveFileDialog());
 			this->statusStrip1->SuspendLayout();
 			this->tabCtrlApplication->SuspendLayout();
 			this->tabModule->SuspendLayout();
@@ -142,16 +259,19 @@ namespace BaseProject
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->chtSignal))->BeginInit();
 			this->gpbxDAQControl->SuspendLayout();
 			this->tabADC->SuspendLayout();
+			this->tabConfig->SuspendLayout();
+			this->gpbxConfigRes->SuspendLayout();
+			this->gpbxTrafos->SuspendLayout();
 			this->SuspendLayout();
 			// 
 			// statusStrip1
 			// 
 			this->statusStrip1->ImageScalingSize = System::Drawing::Size(20, 20);
 			this->statusStrip1->Items->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(1) { this->stLabelConnection });
-			this->statusStrip1->Location = System::Drawing::Point(0, 472);
+			this->statusStrip1->Location = System::Drawing::Point(0, 639);
 			this->statusStrip1->Name = L"statusStrip1";
 			this->statusStrip1->Padding = System::Windows::Forms::Padding(1, 0, 19, 0);
-			this->statusStrip1->Size = System::Drawing::Size(917, 26);
+			this->statusStrip1->Size = System::Drawing::Size(920, 26);
 			this->statusStrip1->TabIndex = 15;
 			this->statusStrip1->Text = L"statusStrip1";
 			// 
@@ -166,12 +286,14 @@ namespace BaseProject
 			this->tabCtrlApplication->Controls->Add(this->tabModule);
 			this->tabCtrlApplication->Controls->Add(this->tabDAQ);
 			this->tabCtrlApplication->Controls->Add(this->tabADC);
+			this->tabCtrlApplication->Controls->Add(this->tabConfig);
+			this->tabCtrlApplication->Controls->Add(this->tabWiFi);
 			this->tabCtrlApplication->Dock = System::Windows::Forms::DockStyle::Fill;
 			this->tabCtrlApplication->Location = System::Drawing::Point(0, 0);
 			this->tabCtrlApplication->Margin = System::Windows::Forms::Padding(4);
 			this->tabCtrlApplication->Name = L"tabCtrlApplication";
 			this->tabCtrlApplication->SelectedIndex = 0;
-			this->tabCtrlApplication->Size = System::Drawing::Size(917, 472);
+			this->tabCtrlApplication->Size = System::Drawing::Size(920, 639);
 			this->tabCtrlApplication->TabIndex = 16;
 			// 
 			// tabModule
@@ -188,7 +310,7 @@ namespace BaseProject
 			this->tabModule->Margin = System::Windows::Forms::Padding(4);
 			this->tabModule->Name = L"tabModule";
 			this->tabModule->Padding = System::Windows::Forms::Padding(4);
-			this->tabModule->Size = System::Drawing::Size(909, 443);
+			this->tabModule->Size = System::Drawing::Size(912, 610);
 			this->tabModule->TabIndex = 0;
 			this->tabModule->Text = L"Módulo";
 			// 
@@ -251,7 +373,7 @@ namespace BaseProject
 			this->txtMessages->Multiline = true;
 			this->txtMessages->Name = L"txtMessages";
 			this->txtMessages->ScrollBars = System::Windows::Forms::ScrollBars::Vertical;
-			this->txtMessages->Size = System::Drawing::Size(875, 355);
+			this->txtMessages->Size = System::Drawing::Size(875, 526);
 			this->txtMessages->TabIndex = 17;
 			// 
 			// btnConnect
@@ -285,7 +407,7 @@ namespace BaseProject
 			this->tabDAQ->Margin = System::Windows::Forms::Padding(4);
 			this->tabDAQ->Name = L"tabDAQ";
 			this->tabDAQ->Padding = System::Windows::Forms::Padding(4);
-			this->tabDAQ->Size = System::Drawing::Size(909, 443);
+			this->tabDAQ->Size = System::Drawing::Size(912, 610);
 			this->tabDAQ->TabIndex = 1;
 			this->tabDAQ->Text = L"Sinais";
 			// 
@@ -296,13 +418,13 @@ namespace BaseProject
 				| System::Windows::Forms::AnchorStyles::Right));
 			chartArea1->AxisX->Minimum = 0;
 			chartArea1->AxisX->Title = L"Tempo (s)";
-			chartArea1->AxisY->Title = L"Tensão (V)";
+			chartArea1->AxisY->Title = L"Valores - Tensão(V), Corrente(A), Potência(VA)";
 			chartArea1->Name = L"Sinais";
 			this->chtSignal->ChartAreas->Add(chartArea1);
 			this->chtSignal->Enabled = false;
 			legend1->Name = L"Legenda";
 			this->chtSignal->Legends->Add(legend1);
-			this->chtSignal->Location = System::Drawing::Point(4, 90);
+			this->chtSignal->Location = System::Drawing::Point(4, 114);
 			this->chtSignal->Margin = System::Windows::Forms::Padding(4);
 			this->chtSignal->Name = L"chtSignal";
 			series1->ChartArea = L"Sinais";
@@ -329,18 +451,39 @@ namespace BaseProject
 			series6->ChartType = System::Windows::Forms::DataVisualization::Charting::SeriesChartType::Line;
 			series6->Legend = L"Legenda";
 			series6->Name = L"Corrente3";
+			series7->ChartArea = L"Sinais";
+			series7->ChartType = System::Windows::Forms::DataVisualization::Charting::SeriesChartType::Line;
+			series7->Legend = L"Legenda";
+			series7->Name = L"Potencia1";
+			series8->ChartArea = L"Sinais";
+			series8->ChartType = System::Windows::Forms::DataVisualization::Charting::SeriesChartType::Line;
+			series8->Legend = L"Legenda";
+			series8->Name = L"Potencia2";
+			series9->ChartArea = L"Sinais";
+			series9->ChartType = System::Windows::Forms::DataVisualization::Charting::SeriesChartType::Line;
+			series9->Legend = L"Legenda";
+			series9->Name = L"Potencia3";
 			this->chtSignal->Series->Add(series1);
 			this->chtSignal->Series->Add(series2);
 			this->chtSignal->Series->Add(series3);
 			this->chtSignal->Series->Add(series4);
 			this->chtSignal->Series->Add(series5);
 			this->chtSignal->Series->Add(series6);
-			this->chtSignal->Size = System::Drawing::Size(899, 346);
+			this->chtSignal->Series->Add(series7);
+			this->chtSignal->Series->Add(series8);
+			this->chtSignal->Series->Add(series9);
+			this->chtSignal->Size = System::Drawing::Size(902, 489);
 			this->chtSignal->TabIndex = 29;
 			this->chtSignal->Text = L"chart1";
 			// 
 			// gpbxDAQControl
 			// 
+			this->gpbxDAQControl->Controls->Add(this->cbxPotencia3);
+			this->gpbxDAQControl->Controls->Add(this->cbxPotencia2);
+			this->gpbxDAQControl->Controls->Add(this->cbxPotencia1);
+			this->gpbxDAQControl->Controls->Add(this->btnSave);
+			this->gpbxDAQControl->Controls->Add(this->cbxResolution);
+			this->gpbxDAQControl->Controls->Add(this->lblResolution);
 			this->gpbxDAQControl->Controls->Add(this->cbxCorrente3);
 			this->gpbxDAQControl->Controls->Add(this->cbxCorrente2);
 			this->gpbxDAQControl->Controls->Add(this->cbxCorrente1);
@@ -355,10 +498,82 @@ namespace BaseProject
 			this->gpbxDAQControl->Margin = System::Windows::Forms::Padding(4);
 			this->gpbxDAQControl->Name = L"gpbxDAQControl";
 			this->gpbxDAQControl->Padding = System::Windows::Forms::Padding(4);
-			this->gpbxDAQControl->Size = System::Drawing::Size(901, 78);
+			this->gpbxDAQControl->Size = System::Drawing::Size(904, 102);
 			this->gpbxDAQControl->TabIndex = 28;
 			this->gpbxDAQControl->TabStop = false;
 			this->gpbxDAQControl->Text = L"Controle de aquisição de dados";
+			// 
+			// cbxPotencia3
+			// 
+			this->cbxPotencia3->AutoSize = true;
+			this->cbxPotencia3->Checked = true;
+			this->cbxPotencia3->CheckState = System::Windows::Forms::CheckState::Checked;
+			this->cbxPotencia3->Location = System::Drawing::Point(640, 73);
+			this->cbxPotencia3->Name = L"cbxPotencia3";
+			this->cbxPotencia3->Size = System::Drawing::Size(92, 20);
+			this->cbxPotencia3->TabIndex = 34;
+			this->cbxPotencia3->Text = L"Potência 3";
+			this->cbxPotencia3->UseVisualStyleBackColor = true;
+			this->cbxPotencia3->CheckedChanged += gcnew System::EventHandler(this, &MainForm::cbxPotencia3_CheckedChanged);
+			// 
+			// cbxPotencia2
+			// 
+			this->cbxPotencia2->AutoSize = true;
+			this->cbxPotencia2->Checked = true;
+			this->cbxPotencia2->CheckState = System::Windows::Forms::CheckState::Checked;
+			this->cbxPotencia2->Location = System::Drawing::Point(544, 73);
+			this->cbxPotencia2->Name = L"cbxPotencia2";
+			this->cbxPotencia2->Size = System::Drawing::Size(92, 20);
+			this->cbxPotencia2->TabIndex = 33;
+			this->cbxPotencia2->Text = L"Potência 2";
+			this->cbxPotencia2->UseVisualStyleBackColor = true;
+			this->cbxPotencia2->CheckedChanged += gcnew System::EventHandler(this, &MainForm::cbxPotencia2_CheckedChanged);
+			// 
+			// cbxPotencia1
+			// 
+			this->cbxPotencia1->AutoSize = true;
+			this->cbxPotencia1->Checked = true;
+			this->cbxPotencia1->CheckState = System::Windows::Forms::CheckState::Checked;
+			this->cbxPotencia1->Location = System::Drawing::Point(448, 73);
+			this->cbxPotencia1->Name = L"cbxPotencia1";
+			this->cbxPotencia1->Size = System::Drawing::Size(92, 20);
+			this->cbxPotencia1->TabIndex = 32;
+			this->cbxPotencia1->Text = L"Potência 1";
+			this->cbxPotencia1->UseVisualStyleBackColor = true;
+			this->cbxPotencia1->CheckedChanged += gcnew System::EventHandler(this, &MainForm::cbxPotencia1_CheckedChanged);
+			// 
+			// btnSave
+			// 
+			this->btnSave->Enabled = false;
+			this->btnSave->Location = System::Drawing::Point(275, 23);
+			this->btnSave->Name = L"btnSave";
+			this->btnSave->Size = System::Drawing::Size(127, 28);
+			this->btnSave->TabIndex = 31;
+			this->btnSave->Text = L"Salvar pontos";
+			this->btnSave->UseVisualStyleBackColor = true;
+			this->btnSave->Click += gcnew System::EventHandler(this, &MainForm::btnSave_Click);
+			// 
+			// cbxResolution
+			// 
+			this->cbxResolution->DropDownStyle = System::Windows::Forms::ComboBoxStyle::DropDownList;
+			this->cbxResolution->FormattingEnabled = true;
+			this->cbxResolution->Items->AddRange(gcnew cli::array< System::Object^  >(7) {
+				L"10", L"25", L"50", L"100", L"250", L"500",
+					L"1000"
+			});
+			this->cbxResolution->Location = System::Drawing::Point(148, 57);
+			this->cbxResolution->Name = L"cbxResolution";
+			this->cbxResolution->Size = System::Drawing::Size(121, 24);
+			this->cbxResolution->TabIndex = 30;
+			// 
+			// lblResolution
+			// 
+			this->lblResolution->AutoSize = true;
+			this->lblResolution->Location = System::Drawing::Point(2, 60);
+			this->lblResolution->Name = L"lblResolution";
+			this->lblResolution->Size = System::Drawing::Size(140, 16);
+			this->lblResolution->TabIndex = 29;
+			this->lblResolution->Text = L"Janela de tempo (ms):";
 			// 
 			// cbxCorrente3
 			// 
@@ -441,9 +656,9 @@ namespace BaseProject
 			// btnClear
 			// 
 			this->btnClear->Enabled = false;
-			this->btnClear->Location = System::Drawing::Point(221, 23);
+			this->btnClear->Location = System::Drawing::Point(142, 23);
 			this->btnClear->Name = L"btnClear";
-			this->btnClear->Size = System::Drawing::Size(166, 28);
+			this->btnClear->Size = System::Drawing::Size(127, 28);
 			this->btnClear->TabIndex = 22;
 			this->btnClear->Text = L"Limpar gráfico";
 			this->btnClear->UseVisualStyleBackColor = true;
@@ -454,7 +669,7 @@ namespace BaseProject
 			this->btnGetSamples->Location = System::Drawing::Point(8, 23);
 			this->btnGetSamples->Margin = System::Windows::Forms::Padding(4);
 			this->btnGetSamples->Name = L"btnGetSamples";
-			this->btnGetSamples->Size = System::Drawing::Size(206, 28);
+			this->btnGetSamples->Size = System::Drawing::Size(127, 28);
 			this->btnGetSamples->TabIndex = 21;
 			this->btnGetSamples->Text = L"Adquirir amostras";
 			this->btnGetSamples->UseVisualStyleBackColor = true;
@@ -463,6 +678,8 @@ namespace BaseProject
 			// tabADC
 			// 
 			this->tabADC->BackColor = System::Drawing::SystemColors::Control;
+			this->tabADC->Controls->Add(this->lblADCReading);
+			this->tabADC->Controls->Add(this->lblADCReadingValue);
 			this->tabADC->Controls->Add(this->lblLeitura);
 			this->tabADC->Controls->Add(this->lblAnalogReading);
 			this->tabADC->Controls->Add(this->cmboxADCSelection);
@@ -471,34 +688,61 @@ namespace BaseProject
 			this->tabADC->Location = System::Drawing::Point(4, 25);
 			this->tabADC->Margin = System::Windows::Forms::Padding(4);
 			this->tabADC->Name = L"tabADC";
-			this->tabADC->Size = System::Drawing::Size(909, 443);
+			this->tabADC->Size = System::Drawing::Size(912, 610);
 			this->tabADC->TabIndex = 2;
 			this->tabADC->Text = L"Leitura instantânea";
+			// 
+			// lblADCReading
+			// 
+			this->lblADCReading->AutoSize = true;
+			this->lblADCReading->Enabled = false;
+			this->lblADCReading->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 19.8F, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
+				static_cast<System::Byte>(0)));
+			this->lblADCReading->Location = System::Drawing::Point(10, 56);
+			this->lblADCReading->Margin = System::Windows::Forms::Padding(4, 0, 4, 0);
+			this->lblADCReading->Name = L"lblADCReading";
+			this->lblADCReading->Size = System::Drawing::Size(204, 38);
+			this->lblADCReading->TabIndex = 28;
+			this->lblADCReading->Text = L"Leitura ADC:";
+			// 
+			// lblADCReadingValue
+			// 
+			this->lblADCReadingValue->AutoSize = true;
+			this->lblADCReadingValue->Enabled = false;
+			this->lblADCReadingValue->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 19.8F, System::Drawing::FontStyle::Regular,
+				System::Drawing::GraphicsUnit::Point, static_cast<System::Byte>(0)));
+			this->lblADCReadingValue->ForeColor = System::Drawing::Color::Red;
+			this->lblADCReadingValue->Location = System::Drawing::Point(304, 56);
+			this->lblADCReadingValue->Margin = System::Windows::Forms::Padding(4, 0, 4, 0);
+			this->lblADCReadingValue->Name = L"lblADCReadingValue";
+			this->lblADCReadingValue->Size = System::Drawing::Size(66, 38);
+			this->lblADCReadingValue->TabIndex = 27;
+			this->lblADCReadingValue->Text = L"\? V";
 			// 
 			// lblLeitura
 			// 
 			this->lblLeitura->AutoSize = true;
 			this->lblLeitura->Enabled = false;
-			this->lblLeitura->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 48, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
+			this->lblLeitura->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 19.8F, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
 				static_cast<System::Byte>(0)));
-			this->lblLeitura->Location = System::Drawing::Point(4, 64);
+			this->lblLeitura->Location = System::Drawing::Point(10, 95);
 			this->lblLeitura->Margin = System::Windows::Forms::Padding(4, 0, 4, 0);
 			this->lblLeitura->Name = L"lblLeitura";
-			this->lblLeitura->Size = System::Drawing::Size(303, 91);
+			this->lblLeitura->Size = System::Drawing::Size(273, 38);
 			this->lblLeitura->TabIndex = 26;
-			this->lblLeitura->Text = L"Leitura:";
+			this->lblLeitura->Text = L"Leitura Calibrada:";
 			// 
 			// lblAnalogReading
 			// 
 			this->lblAnalogReading->AutoSize = true;
 			this->lblAnalogReading->Enabled = false;
-			this->lblAnalogReading->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 48, System::Drawing::FontStyle::Regular, System::Drawing::GraphicsUnit::Point,
-				static_cast<System::Byte>(0)));
+			this->lblAnalogReading->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 19.8F, System::Drawing::FontStyle::Regular,
+				System::Drawing::GraphicsUnit::Point, static_cast<System::Byte>(0)));
 			this->lblAnalogReading->ForeColor = System::Drawing::Color::Red;
-			this->lblAnalogReading->Location = System::Drawing::Point(341, 64);
+			this->lblAnalogReading->Location = System::Drawing::Point(304, 95);
 			this->lblAnalogReading->Margin = System::Windows::Forms::Padding(4, 0, 4, 0);
 			this->lblAnalogReading->Name = L"lblAnalogReading";
-			this->lblAnalogReading->Size = System::Drawing::Size(157, 91);
+			this->lblAnalogReading->Size = System::Drawing::Size(66, 38);
 			this->lblAnalogReading->TabIndex = 25;
 			this->lblAnalogReading->Text = L"\? V";
 			// 
@@ -542,11 +786,498 @@ namespace BaseProject
 			this->btnLeitura->UseVisualStyleBackColor = true;
 			this->btnLeitura->Click += gcnew System::EventHandler(this, &MainForm::btnLeitura_Click);
 			// 
+			// tabConfig
+			// 
+			this->tabConfig->BackColor = System::Drawing::SystemColors::Control;
+			this->tabConfig->Controls->Add(this->gpbxConfigRes);
+			this->tabConfig->Controls->Add(this->gpbxTrafos);
+			this->tabConfig->Location = System::Drawing::Point(4, 25);
+			this->tabConfig->Name = L"tabConfig";
+			this->tabConfig->Size = System::Drawing::Size(912, 610);
+			this->tabConfig->TabIndex = 3;
+			this->tabConfig->Text = L"Calibração de sensores";
+			// 
+			// gpbxConfigRes
+			// 
+			this->gpbxConfigRes->Controls->Add(this->lblRes6);
+			this->gpbxConfigRes->Controls->Add(this->txtRes6);
+			this->gpbxConfigRes->Controls->Add(this->lblRes7);
+			this->gpbxConfigRes->Controls->Add(this->txtRes7);
+			this->gpbxConfigRes->Controls->Add(this->lblRes8);
+			this->gpbxConfigRes->Controls->Add(this->txtRes8);
+			this->gpbxConfigRes->Controls->Add(this->lblRes9);
+			this->gpbxConfigRes->Controls->Add(this->txtRes3);
+			this->gpbxConfigRes->Controls->Add(this->txtRes9);
+			this->gpbxConfigRes->Controls->Add(this->lblRes3);
+			this->gpbxConfigRes->Controls->Add(this->lblRes10);
+			this->gpbxConfigRes->Controls->Add(this->txtRes2);
+			this->gpbxConfigRes->Controls->Add(this->txtRes10);
+			this->gpbxConfigRes->Controls->Add(this->lblRes2);
+			this->gpbxConfigRes->Controls->Add(this->lblRes11);
+			this->gpbxConfigRes->Controls->Add(this->txtRes1);
+			this->gpbxConfigRes->Controls->Add(this->txtRes11);
+			this->gpbxConfigRes->Controls->Add(this->lblRes1);
+			this->gpbxConfigRes->Location = System::Drawing::Point(8, 216);
+			this->gpbxConfigRes->Name = L"gpbxConfigRes";
+			this->gpbxConfigRes->Size = System::Drawing::Size(896, 254);
+			this->gpbxConfigRes->TabIndex = 25;
+			this->gpbxConfigRes->TabStop = false;
+			this->gpbxConfigRes->Text = L"Configurações de resistores";
+			// 
+			// lblRes6
+			// 
+			this->lblRes6->AutoSize = true;
+			this->lblRes6->Location = System::Drawing::Point(6, 24);
+			this->lblRes6->Name = L"lblRes6";
+			this->lblRes6->Size = System::Drawing::Size(115, 16);
+			this->lblRes6->TabIndex = 24;
+			this->lblRes6->Text = L"Valor R6 (kOhms):";
+			// 
+			// txtRes6
+			// 
+			this->txtRes6->Location = System::Drawing::Point(174, 18);
+			this->txtRes6->Name = L"txtRes6";
+			this->txtRes6->Size = System::Drawing::Size(124, 22);
+			this->txtRes6->TabIndex = 25;
+			this->txtRes6->Text = L"100";
+			this->txtRes6->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::VoltageSensor1_ChangeValues);
+			this->txtRes6->Leave += gcnew System::EventHandler(this, &MainForm::VoltageSensor1_ChangeValues);
+			// 
+			// lblRes7
+			// 
+			this->lblRes7->AutoSize = true;
+			this->lblRes7->Location = System::Drawing::Point(6, 52);
+			this->lblRes7->Name = L"lblRes7";
+			this->lblRes7->Size = System::Drawing::Size(115, 16);
+			this->lblRes7->TabIndex = 26;
+			this->lblRes7->Text = L"Valor R7 (kOhms):";
+			// 
+			// txtRes7
+			// 
+			this->txtRes7->Location = System::Drawing::Point(174, 46);
+			this->txtRes7->Name = L"txtRes7";
+			this->txtRes7->Size = System::Drawing::Size(124, 22);
+			this->txtRes7->TabIndex = 27;
+			this->txtRes7->Text = L"10";
+			this->txtRes7->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::VoltageSensor1_ChangeValues);
+			this->txtRes7->Leave += gcnew System::EventHandler(this, &MainForm::VoltageSensor1_ChangeValues);
+			// 
+			// lblRes8
+			// 
+			this->lblRes8->AutoSize = true;
+			this->lblRes8->Location = System::Drawing::Point(6, 80);
+			this->lblRes8->Name = L"lblRes8";
+			this->lblRes8->Size = System::Drawing::Size(115, 16);
+			this->lblRes8->TabIndex = 28;
+			this->lblRes8->Text = L"Valor R8 (kOhms):";
+			// 
+			// txtRes8
+			// 
+			this->txtRes8->Location = System::Drawing::Point(174, 74);
+			this->txtRes8->Name = L"txtRes8";
+			this->txtRes8->Size = System::Drawing::Size(124, 22);
+			this->txtRes8->TabIndex = 29;
+			this->txtRes8->Text = L"100";
+			this->txtRes8->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::VoltageSensor2_ChangeValues);
+			this->txtRes8->Leave += gcnew System::EventHandler(this, &MainForm::VoltageSensor2_ChangeValues);
+			// 
+			// lblRes9
+			// 
+			this->lblRes9->AutoSize = true;
+			this->lblRes9->Location = System::Drawing::Point(6, 108);
+			this->lblRes9->Name = L"lblRes9";
+			this->lblRes9->Size = System::Drawing::Size(115, 16);
+			this->lblRes9->TabIndex = 30;
+			this->lblRes9->Text = L"Valor R9 (kOhms):";
+			// 
+			// txtRes3
+			// 
+			this->txtRes3->Location = System::Drawing::Point(468, 74);
+			this->txtRes3->Name = L"txtRes3";
+			this->txtRes3->Size = System::Drawing::Size(117, 22);
+			this->txtRes3->TabIndex = 41;
+			this->txtRes3->Text = L"33";
+			this->txtRes3->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::CurrentSensor3_ChangeValues);
+			this->txtRes3->Leave += gcnew System::EventHandler(this, &MainForm::CurrentSensor3_ChangeValues);
+			// 
+			// txtRes9
+			// 
+			this->txtRes9->Location = System::Drawing::Point(174, 102);
+			this->txtRes9->Name = L"txtRes9";
+			this->txtRes9->Size = System::Drawing::Size(124, 22);
+			this->txtRes9->TabIndex = 31;
+			this->txtRes9->Text = L"10";
+			this->txtRes9->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::VoltageSensor2_ChangeValues);
+			this->txtRes9->Leave += gcnew System::EventHandler(this, &MainForm::VoltageSensor2_ChangeValues);
+			// 
+			// lblRes3
+			// 
+			this->lblRes3->AutoSize = true;
+			this->lblRes3->Location = System::Drawing::Point(304, 80);
+			this->lblRes3->Name = L"lblRes3";
+			this->lblRes3->Size = System::Drawing::Size(108, 16);
+			this->lblRes3->TabIndex = 40;
+			this->lblRes3->Text = L"Valor R3 (Ohms):";
+			// 
+			// lblRes10
+			// 
+			this->lblRes10->AutoSize = true;
+			this->lblRes10->Location = System::Drawing::Point(6, 136);
+			this->lblRes10->Name = L"lblRes10";
+			this->lblRes10->Size = System::Drawing::Size(122, 16);
+			this->lblRes10->TabIndex = 32;
+			this->lblRes10->Text = L"Valor R10 (kOhms):";
+			// 
+			// txtRes2
+			// 
+			this->txtRes2->Location = System::Drawing::Point(468, 46);
+			this->txtRes2->Name = L"txtRes2";
+			this->txtRes2->Size = System::Drawing::Size(117, 22);
+			this->txtRes2->TabIndex = 39;
+			this->txtRes2->Text = L"33";
+			this->txtRes2->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::CurrentSensor2_ChangeValues);
+			this->txtRes2->Leave += gcnew System::EventHandler(this, &MainForm::CurrentSensor2_ChangeValues);
+			// 
+			// txtRes10
+			// 
+			this->txtRes10->Location = System::Drawing::Point(174, 130);
+			this->txtRes10->Name = L"txtRes10";
+			this->txtRes10->Size = System::Drawing::Size(124, 22);
+			this->txtRes10->TabIndex = 33;
+			this->txtRes10->Text = L"100";
+			this->txtRes10->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::VoltageSensor3_ChangeValues);
+			this->txtRes10->Leave += gcnew System::EventHandler(this, &MainForm::VoltageSensor3_ChangeValues);
+			// 
+			// lblRes2
+			// 
+			this->lblRes2->AutoSize = true;
+			this->lblRes2->Location = System::Drawing::Point(304, 52);
+			this->lblRes2->Name = L"lblRes2";
+			this->lblRes2->Size = System::Drawing::Size(108, 16);
+			this->lblRes2->TabIndex = 38;
+			this->lblRes2->Text = L"Valor R2 (Ohms):";
+			// 
+			// lblRes11
+			// 
+			this->lblRes11->AutoSize = true;
+			this->lblRes11->Location = System::Drawing::Point(6, 164);
+			this->lblRes11->Name = L"lblRes11";
+			this->lblRes11->Size = System::Drawing::Size(122, 16);
+			this->lblRes11->TabIndex = 34;
+			this->lblRes11->Text = L"Valor R11 (kOhms):";
+			// 
+			// txtRes1
+			// 
+			this->txtRes1->Location = System::Drawing::Point(468, 18);
+			this->txtRes1->Name = L"txtRes1";
+			this->txtRes1->Size = System::Drawing::Size(117, 22);
+			this->txtRes1->TabIndex = 37;
+			this->txtRes1->Text = L"33";
+			this->txtRes1->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::CurrentSensor1_ChangeValues);
+			this->txtRes1->Leave += gcnew System::EventHandler(this, &MainForm::CurrentSensor1_ChangeValues);
+			// 
+			// txtRes11
+			// 
+			this->txtRes11->Location = System::Drawing::Point(174, 158);
+			this->txtRes11->Name = L"txtRes11";
+			this->txtRes11->Size = System::Drawing::Size(124, 22);
+			this->txtRes11->TabIndex = 35;
+			this->txtRes11->Text = L"10";
+			this->txtRes11->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::VoltageSensor3_ChangeValues);
+			this->txtRes11->Leave += gcnew System::EventHandler(this, &MainForm::VoltageSensor3_ChangeValues);
+			// 
+			// lblRes1
+			// 
+			this->lblRes1->AutoSize = true;
+			this->lblRes1->Location = System::Drawing::Point(304, 24);
+			this->lblRes1->Name = L"lblRes1";
+			this->lblRes1->Size = System::Drawing::Size(108, 16);
+			this->lblRes1->TabIndex = 36;
+			this->lblRes1->Text = L"Valor R1 (Ohms):";
+			// 
+			// gpbxTrafos
+			// 
+			this->gpbxTrafos->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
+				| System::Windows::Forms::AnchorStyles::Right));
+			this->gpbxTrafos->Controls->Add(this->lblPrimarioT1);
+			this->gpbxTrafos->Controls->Add(this->txtSecundarioTC3);
+			this->gpbxTrafos->Controls->Add(this->txtPrimarioT1);
+			this->gpbxTrafos->Controls->Add(this->lblSecundarioTC3);
+			this->gpbxTrafos->Controls->Add(this->lblSecundarioT1);
+			this->gpbxTrafos->Controls->Add(this->txtPrimarioTC3);
+			this->gpbxTrafos->Controls->Add(this->txtSecundarioT1);
+			this->gpbxTrafos->Controls->Add(this->lblPrimarioTC3);
+			this->gpbxTrafos->Controls->Add(this->lblPrimarioT2);
+			this->gpbxTrafos->Controls->Add(this->txtSecundarioTC2);
+			this->gpbxTrafos->Controls->Add(this->txtPrimarioT2);
+			this->gpbxTrafos->Controls->Add(this->lblSecundarioTC2);
+			this->gpbxTrafos->Controls->Add(this->lblSecundarioT2);
+			this->gpbxTrafos->Controls->Add(this->txtPrimarioTC2);
+			this->gpbxTrafos->Controls->Add(this->txtSecundarioT2);
+			this->gpbxTrafos->Controls->Add(this->lblPrimarioTC2);
+			this->gpbxTrafos->Controls->Add(this->lblPrimarioT3);
+			this->gpbxTrafos->Controls->Add(this->txtSecundarioTC1);
+			this->gpbxTrafos->Controls->Add(this->txtPrimarioT3);
+			this->gpbxTrafos->Controls->Add(this->lblSecundarioTC1);
+			this->gpbxTrafos->Controls->Add(this->lblSecundarioT3);
+			this->gpbxTrafos->Controls->Add(this->txtPrimarioTC1);
+			this->gpbxTrafos->Controls->Add(this->txtSecundarioT3);
+			this->gpbxTrafos->Controls->Add(this->lblPrimarioTC1);
+			this->gpbxTrafos->Location = System::Drawing::Point(8, 3);
+			this->gpbxTrafos->Name = L"gpbxTrafos";
+			this->gpbxTrafos->Size = System::Drawing::Size(896, 207);
+			this->gpbxTrafos->TabIndex = 24;
+			this->gpbxTrafos->TabStop = false;
+			this->gpbxTrafos->Text = L"Configuração de transformadores";
+			// 
+			// lblPrimarioT1
+			// 
+			this->lblPrimarioT1->AutoSize = true;
+			this->lblPrimarioT1->Location = System::Drawing::Point(6, 29);
+			this->lblPrimarioT1->Name = L"lblPrimarioT1";
+			this->lblPrimarioT1->Size = System::Drawing::Size(189, 16);
+			this->lblPrimarioT1->TabIndex = 0;
+			this->lblPrimarioT1->Text = L"Tensão primário de T1 (Vrms):";
+			// 
+			// txtSecundarioTC3
+			// 
+			this->txtSecundarioTC3->Location = System::Drawing::Point(517, 166);
+			this->txtSecundarioTC3->Name = L"txtSecundarioTC3";
+			this->txtSecundarioTC3->Size = System::Drawing::Size(68, 22);
+			this->txtSecundarioTC3->TabIndex = 23;
+			this->txtSecundarioTC3->Text = L"0,05";
+			this->txtSecundarioTC3->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::CurrentSensor3_ChangeValues);
+			this->txtSecundarioTC3->Leave += gcnew System::EventHandler(this, &MainForm::CurrentSensor3_ChangeValues);
+			// 
+			// txtPrimarioT1
+			// 
+			this->txtPrimarioT1->Location = System::Drawing::Point(230, 26);
+			this->txtPrimarioT1->Name = L"txtPrimarioT1";
+			this->txtPrimarioT1->Size = System::Drawing::Size(68, 22);
+			this->txtPrimarioT1->TabIndex = 1;
+			this->txtPrimarioT1->Text = L"220";
+			this->txtPrimarioT1->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::VoltageSensor1_ChangeValues);
+			this->txtPrimarioT1->Leave += gcnew System::EventHandler(this, &MainForm::VoltageSensor1_ChangeValues);
+			// 
+			// lblSecundarioTC3
+			// 
+			this->lblSecundarioTC3->AutoSize = true;
+			this->lblSecundarioTC3->Location = System::Drawing::Point(304, 169);
+			this->lblSecundarioTC3->Name = L"lblSecundarioTC3";
+			this->lblSecundarioTC3->Size = System::Drawing::Size(189, 16);
+			this->lblSecundarioTC3->TabIndex = 22;
+			this->lblSecundarioTC3->Text = L"Corrente secundário de T3 (A):";
+			// 
+			// lblSecundarioT1
+			// 
+			this->lblSecundarioT1->AutoSize = true;
+			this->lblSecundarioT1->Location = System::Drawing::Point(6, 57);
+			this->lblSecundarioT1->Name = L"lblSecundarioT1";
+			this->lblSecundarioT1->Size = System::Drawing::Size(207, 16);
+			this->lblSecundarioT1->TabIndex = 2;
+			this->lblSecundarioT1->Text = L"Tensão secundário de T1 (Vrms):";
+			// 
+			// txtPrimarioTC3
+			// 
+			this->txtPrimarioTC3->Location = System::Drawing::Point(517, 138);
+			this->txtPrimarioTC3->Name = L"txtPrimarioTC3";
+			this->txtPrimarioTC3->Size = System::Drawing::Size(68, 22);
+			this->txtPrimarioTC3->TabIndex = 21;
+			this->txtPrimarioTC3->Text = L"100";
+			this->txtPrimarioTC3->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::CurrentSensor3_ChangeValues);
+			this->txtPrimarioTC3->Leave += gcnew System::EventHandler(this, &MainForm::CurrentSensor3_ChangeValues);
+			// 
+			// txtSecundarioT1
+			// 
+			this->txtSecundarioT1->Location = System::Drawing::Point(230, 54);
+			this->txtSecundarioT1->Name = L"txtSecundarioT1";
+			this->txtSecundarioT1->Size = System::Drawing::Size(68, 22);
+			this->txtSecundarioT1->TabIndex = 3;
+			this->txtSecundarioT1->Text = L"9";
+			this->txtSecundarioT1->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::VoltageSensor1_ChangeValues);
+			this->txtSecundarioT1->Leave += gcnew System::EventHandler(this, &MainForm::VoltageSensor1_ChangeValues);
+			// 
+			// lblPrimarioTC3
+			// 
+			this->lblPrimarioTC3->AutoSize = true;
+			this->lblPrimarioTC3->Location = System::Drawing::Point(304, 141);
+			this->lblPrimarioTC3->Name = L"lblPrimarioTC3";
+			this->lblPrimarioTC3->Size = System::Drawing::Size(180, 16);
+			this->lblPrimarioTC3->TabIndex = 20;
+			this->lblPrimarioTC3->Text = L"Corrente primário de TC3 (A):";
+			// 
+			// lblPrimarioT2
+			// 
+			this->lblPrimarioT2->AutoSize = true;
+			this->lblPrimarioT2->Location = System::Drawing::Point(6, 85);
+			this->lblPrimarioT2->Name = L"lblPrimarioT2";
+			this->lblPrimarioT2->Size = System::Drawing::Size(189, 16);
+			this->lblPrimarioT2->TabIndex = 4;
+			this->lblPrimarioT2->Text = L"Tensão primário de T2 (Vrms):";
+			// 
+			// txtSecundarioTC2
+			// 
+			this->txtSecundarioTC2->Location = System::Drawing::Point(517, 110);
+			this->txtSecundarioTC2->Name = L"txtSecundarioTC2";
+			this->txtSecundarioTC2->Size = System::Drawing::Size(68, 22);
+			this->txtSecundarioTC2->TabIndex = 19;
+			this->txtSecundarioTC2->Text = L"0,05";
+			this->txtSecundarioTC2->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::CurrentSensor2_ChangeValues);
+			this->txtSecundarioTC2->Leave += gcnew System::EventHandler(this, &MainForm::CurrentSensor2_ChangeValues);
+			// 
+			// txtPrimarioT2
+			// 
+			this->txtPrimarioT2->Location = System::Drawing::Point(230, 82);
+			this->txtPrimarioT2->Name = L"txtPrimarioT2";
+			this->txtPrimarioT2->Size = System::Drawing::Size(68, 22);
+			this->txtPrimarioT2->TabIndex = 5;
+			this->txtPrimarioT2->Text = L"220";
+			this->txtPrimarioT2->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::VoltageSensor2_ChangeValues);
+			this->txtPrimarioT2->Leave += gcnew System::EventHandler(this, &MainForm::VoltageSensor2_ChangeValues);
+			// 
+			// lblSecundarioTC2
+			// 
+			this->lblSecundarioTC2->AutoSize = true;
+			this->lblSecundarioTC2->Location = System::Drawing::Point(304, 113);
+			this->lblSecundarioTC2->Name = L"lblSecundarioTC2";
+			this->lblSecundarioTC2->Size = System::Drawing::Size(198, 16);
+			this->lblSecundarioTC2->TabIndex = 18;
+			this->lblSecundarioTC2->Text = L"Corrente secundário de TC2 (A):";
+			// 
+			// lblSecundarioT2
+			// 
+			this->lblSecundarioT2->AutoSize = true;
+			this->lblSecundarioT2->Location = System::Drawing::Point(6, 113);
+			this->lblSecundarioT2->Name = L"lblSecundarioT2";
+			this->lblSecundarioT2->Size = System::Drawing::Size(207, 16);
+			this->lblSecundarioT2->TabIndex = 6;
+			this->lblSecundarioT2->Text = L"Tensão secundário de T2 (Vrms):";
+			// 
+			// txtPrimarioTC2
+			// 
+			this->txtPrimarioTC2->Location = System::Drawing::Point(517, 82);
+			this->txtPrimarioTC2->Name = L"txtPrimarioTC2";
+			this->txtPrimarioTC2->Size = System::Drawing::Size(68, 22);
+			this->txtPrimarioTC2->TabIndex = 17;
+			this->txtPrimarioTC2->Text = L"100";
+			this->txtPrimarioTC2->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::CurrentSensor2_ChangeValues);
+			this->txtPrimarioTC2->Leave += gcnew System::EventHandler(this, &MainForm::CurrentSensor2_ChangeValues);
+			// 
+			// txtSecundarioT2
+			// 
+			this->txtSecundarioT2->Location = System::Drawing::Point(230, 110);
+			this->txtSecundarioT2->Name = L"txtSecundarioT2";
+			this->txtSecundarioT2->Size = System::Drawing::Size(68, 22);
+			this->txtSecundarioT2->TabIndex = 7;
+			this->txtSecundarioT2->Text = L"9";
+			this->txtSecundarioT2->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::VoltageSensor2_ChangeValues);
+			this->txtSecundarioT2->Leave += gcnew System::EventHandler(this, &MainForm::VoltageSensor2_ChangeValues);
+			// 
+			// lblPrimarioTC2
+			// 
+			this->lblPrimarioTC2->AutoSize = true;
+			this->lblPrimarioTC2->Location = System::Drawing::Point(304, 85);
+			this->lblPrimarioTC2->Name = L"lblPrimarioTC2";
+			this->lblPrimarioTC2->Size = System::Drawing::Size(180, 16);
+			this->lblPrimarioTC2->TabIndex = 16;
+			this->lblPrimarioTC2->Text = L"Corrente primário de TC2 (A):";
+			// 
+			// lblPrimarioT3
+			// 
+			this->lblPrimarioT3->AutoSize = true;
+			this->lblPrimarioT3->Location = System::Drawing::Point(6, 141);
+			this->lblPrimarioT3->Name = L"lblPrimarioT3";
+			this->lblPrimarioT3->Size = System::Drawing::Size(189, 16);
+			this->lblPrimarioT3->TabIndex = 8;
+			this->lblPrimarioT3->Text = L"Tensão primário de T3 (Vrms):";
+			// 
+			// txtSecundarioTC1
+			// 
+			this->txtSecundarioTC1->Location = System::Drawing::Point(517, 54);
+			this->txtSecundarioTC1->Name = L"txtSecundarioTC1";
+			this->txtSecundarioTC1->Size = System::Drawing::Size(68, 22);
+			this->txtSecundarioTC1->TabIndex = 15;
+			this->txtSecundarioTC1->Text = L"0,05";
+			this->txtSecundarioTC1->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::CurrentSensor1_ChangeValues);
+			this->txtSecundarioTC1->Leave += gcnew System::EventHandler(this, &MainForm::CurrentSensor1_ChangeValues);
+			// 
+			// txtPrimarioT3
+			// 
+			this->txtPrimarioT3->Location = System::Drawing::Point(230, 138);
+			this->txtPrimarioT3->Name = L"txtPrimarioT3";
+			this->txtPrimarioT3->Size = System::Drawing::Size(68, 22);
+			this->txtPrimarioT3->TabIndex = 9;
+			this->txtPrimarioT3->Text = L"220";
+			this->txtPrimarioT3->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::VoltageSensor3_ChangeValues);
+			this->txtPrimarioT3->Leave += gcnew System::EventHandler(this, &MainForm::VoltageSensor3_ChangeValues);
+			// 
+			// lblSecundarioTC1
+			// 
+			this->lblSecundarioTC1->AutoSize = true;
+			this->lblSecundarioTC1->Location = System::Drawing::Point(304, 57);
+			this->lblSecundarioTC1->Name = L"lblSecundarioTC1";
+			this->lblSecundarioTC1->Size = System::Drawing::Size(198, 16);
+			this->lblSecundarioTC1->TabIndex = 14;
+			this->lblSecundarioTC1->Text = L"Corrente secundário de TC1 (A):";
+			// 
+			// lblSecundarioT3
+			// 
+			this->lblSecundarioT3->AutoSize = true;
+			this->lblSecundarioT3->Location = System::Drawing::Point(6, 169);
+			this->lblSecundarioT3->Name = L"lblSecundarioT3";
+			this->lblSecundarioT3->Size = System::Drawing::Size(207, 16);
+			this->lblSecundarioT3->TabIndex = 10;
+			this->lblSecundarioT3->Text = L"Tensão secundário de T3 (Vrms):";
+			// 
+			// txtPrimarioTC1
+			// 
+			this->txtPrimarioTC1->Location = System::Drawing::Point(517, 26);
+			this->txtPrimarioTC1->Name = L"txtPrimarioTC1";
+			this->txtPrimarioTC1->Size = System::Drawing::Size(68, 22);
+			this->txtPrimarioTC1->TabIndex = 13;
+			this->txtPrimarioTC1->Text = L"100";
+			this->txtPrimarioTC1->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::CurrentSensor1_ChangeValues);
+			this->txtPrimarioTC1->Leave += gcnew System::EventHandler(this, &MainForm::CurrentSensor1_ChangeValues);
+			// 
+			// txtSecundarioT3
+			// 
+			this->txtSecundarioT3->Location = System::Drawing::Point(230, 166);
+			this->txtSecundarioT3->Name = L"txtSecundarioT3";
+			this->txtSecundarioT3->Size = System::Drawing::Size(68, 22);
+			this->txtSecundarioT3->TabIndex = 11;
+			this->txtSecundarioT3->Text = L"9";
+			this->txtSecundarioT3->KeyPress += gcnew System::Windows::Forms::KeyPressEventHandler(this, &MainForm::VoltageSensor3_ChangeValues);
+			this->txtSecundarioT3->Leave += gcnew System::EventHandler(this, &MainForm::VoltageSensor3_ChangeValues);
+			// 
+			// lblPrimarioTC1
+			// 
+			this->lblPrimarioTC1->AutoSize = true;
+			this->lblPrimarioTC1->Location = System::Drawing::Point(304, 29);
+			this->lblPrimarioTC1->Name = L"lblPrimarioTC1";
+			this->lblPrimarioTC1->Size = System::Drawing::Size(180, 16);
+			this->lblPrimarioTC1->TabIndex = 12;
+			this->lblPrimarioTC1->Text = L"Corrente primário de TC1 (A):";
+			// 
+			// tabWiFi
+			// 
+			this->tabWiFi->BackColor = System::Drawing::SystemColors::Control;
+			this->tabWiFi->Location = System::Drawing::Point(4, 25);
+			this->tabWiFi->Name = L"tabWiFi";
+			this->tabWiFi->Size = System::Drawing::Size(912, 610);
+			this->tabWiFi->TabIndex = 4;
+			this->tabWiFi->Text = L"Configuração de WiFi";
+			// 
+			// dlgSaveCSV
+			// 
+			this->dlgSaveCSV->Filter = L"Arquivos CSV | *.csv";
+			this->dlgSaveCSV->InitialDirectory = L".";
+			this->dlgSaveCSV->Title = L"Salvar pontos atuais";
+			// 
 			// MainForm
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(8, 16);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-			this->ClientSize = System::Drawing::Size(917, 498);
+			this->ClientSize = System::Drawing::Size(920, 665);
 			this->Controls->Add(this->tabCtrlApplication);
 			this->Controls->Add(this->statusStrip1);
 			this->Icon = (cli::safe_cast<System::Drawing::Icon^>(resources->GetObject(L"$this.Icon")));
@@ -554,6 +1285,7 @@ namespace BaseProject
 			this->Name = L"MainForm";
 			this->Text = L"Projeto de amostragem de potência trifásica";
 			this->FormClosed += gcnew System::Windows::Forms::FormClosedEventHandler(this, &MainForm::MainForm_FormClosed);
+			this->Load += gcnew System::EventHandler(this, &MainForm::MainForm_Load);
 			this->statusStrip1->ResumeLayout(false);
 			this->statusStrip1->PerformLayout();
 			this->tabCtrlApplication->ResumeLayout(false);
@@ -565,6 +1297,11 @@ namespace BaseProject
 			this->gpbxDAQControl->PerformLayout();
 			this->tabADC->ResumeLayout(false);
 			this->tabADC->PerformLayout();
+			this->tabConfig->ResumeLayout(false);
+			this->gpbxConfigRes->ResumeLayout(false);
+			this->gpbxConfigRes->PerformLayout();
+			this->gpbxTrafos->ResumeLayout(false);
+			this->gpbxTrafos->PerformLayout();
 			this->ResumeLayout(false);
 			this->PerformLayout();
 
@@ -572,7 +1309,85 @@ namespace BaseProject
 #pragma endregion
 		private:
 			Module ^device;
+			array<double> ^squaredValueSum;
 			unsigned long long amostra;
+			float T1rel, T2rel, T3rel,TC1rel, TC2rel, TC3rel;
+			BindingList<float> ^SamplesT1, ^SamplesT2, ^SamplesT3, ^SamplesTC1, ^SamplesTC2, ^SamplesTC3;
+
+			System::Void MainForm_Load(System::Object^ sender, System::EventArgs^ e)
+			{
+				loadTxtIfConfigExists(txtPrimarioT1);
+				loadTxtIfConfigExists(txtSecundarioT1);
+				loadTxtIfConfigExists(txtRes6);
+				loadTxtIfConfigExists(txtRes7);
+				T1rel = getVoltageSensorRate(txtPrimarioT1, txtSecundarioT1, txtRes6, txtRes7);
+
+				loadTxtIfConfigExists(txtPrimarioT2);
+				loadTxtIfConfigExists(txtSecundarioT2);
+				loadTxtIfConfigExists(txtRes8);
+				loadTxtIfConfigExists(txtRes9);
+				T2rel = getVoltageSensorRate(txtPrimarioT2, txtSecundarioT2, txtRes8, txtRes9);
+
+				loadTxtIfConfigExists(txtPrimarioT3);
+				loadTxtIfConfigExists(txtSecundarioT3);
+				loadTxtIfConfigExists(txtRes10);
+				loadTxtIfConfigExists(txtRes11);
+				T3rel = getVoltageSensorRate(txtPrimarioT3, txtSecundarioT3, txtRes10, txtRes11);
+
+				loadTxtIfConfigExists(txtPrimarioTC1);
+				loadTxtIfConfigExists(txtSecundarioTC1);
+				loadTxtIfConfigExists(txtRes1);
+				TC1rel = getCurrentSensorRate(txtPrimarioTC1, txtSecundarioTC1, txtRes1);
+
+				loadTxtIfConfigExists(txtPrimarioTC2);
+				loadTxtIfConfigExists(txtSecundarioTC2);
+				loadTxtIfConfigExists(txtRes2);
+				TC2rel = getCurrentSensorRate(txtPrimarioTC2, txtSecundarioTC2, txtRes2);
+
+				loadTxtIfConfigExists(txtPrimarioTC3);
+				loadTxtIfConfigExists(txtSecundarioTC3);
+				loadTxtIfConfigExists(txtRes3);
+				TC3rel = getCurrentSensorRate(txtPrimarioTC3, txtSecundarioTC3, txtRes3);
+
+				SamplesT1 = gcnew BindingList<float>();
+			    SamplesT2 = gcnew BindingList<float>(); 
+				SamplesT3 = gcnew BindingList<float>(); 
+				SamplesTC1 = gcnew BindingList<float>();
+				SamplesTC2 = gcnew BindingList<float>(); 
+				SamplesTC3 = gcnew BindingList<float>();
+			}
+
+			float getFloatFromTxBox(TextBox^ txtBox)
+			{
+				float value;
+
+				try
+				{
+					value = Convert::ToSingle(txtBox->Text);
+				}
+				catch (...)
+				{
+					value = 0.0f;
+				}
+
+				return value;
+			}
+
+			void MainForm::loadTxtIfConfigExists(TextBox^ txtBox)
+			{
+				if (System::Configuration::ConfigurationManager::AppSettings[txtBox->Name] != nullptr)
+					txtBox->Text = System::Configuration::ConfigurationManager::AppSettings[txtBox->Name];
+			}
+
+			void MainForm::saveTxtToConfig(TextBox^ txtBox)
+			{
+				System::Configuration::Configuration^ config = ConfigurationManager::OpenExeConfiguration(ConfigurationUserLevel::None);
+
+				config->AppSettings->Settings->Remove(txtBox->Name);
+				config->AppSettings->Settings->Add(txtBox->Name, txtBox->Text);
+				config->Save(ConfigurationSaveMode::Modified);
+				ConfigurationManager::RefreshSection("appSettings");
+			}
 
 			System::Void cmboxSerialPorts_Click(System::Object^  sender, System::EventArgs^  e) 
 			{
@@ -582,11 +1397,13 @@ namespace BaseProject
 				for each(String ^name in portNames)
 					cmboxSerialPorts->Items->Add(name);
 			}
+
 			System::Void btnConnect_Click(System::Object^  sender, System::EventArgs^  e) 
 			{
 				if (btnConnect->Text == "Conectar")
 				{
 					USBDevice ^virtualComm = gcnew USBDevice((String ^)cmboxSerialPorts->Items[cmboxSerialPorts->SelectedIndex]);
+					virtualComm->BaudRate = 115200;
 					device = gcnew Module(virtualComm);
 					try
 					{
@@ -631,8 +1448,11 @@ namespace BaseProject
 						btnLeitura->Enabled = true;
 						lblLeitura->Enabled = true;
 						lblAnalogReading->Enabled = true;
+						lblADCReading->Enabled = true;
+						lblADCReadingValue->Enabled = true;
 						btnTxtClear->Enabled = true;
 						btnClear->Enabled = true;
+						btnSave->Enabled = true;
 					}
 				}
 				else
@@ -654,10 +1474,14 @@ namespace BaseProject
 					btnLeitura->Enabled = false;
 					lblLeitura->Enabled = false;
 					lblAnalogReading->Enabled = false;
+					lblADCReading->Enabled = false;
+					lblADCReadingValue->Enabled = false;
 					btnTxtClear->Enabled = false;
 					btnClear->Enabled = false;
+					btnSave->Enabled = false;
 				}
 			}
+
 			System::Void ReceptionHandler(Object ^eqp, array<unsigned char>^buffer)
 			{
 				if (txtMessages->InvokeRequired)
@@ -668,7 +1492,7 @@ namespace BaseProject
 				}
 				else
 				{
-					float tmpFloat;
+					float adcVal, analogVal;
 
 					switch (buffer[0])
 					{
@@ -676,58 +1500,105 @@ namespace BaseProject
 							txtMessages->Text += Encoding::ASCII->GetString(buffer, 1, buffer->Length - 1);
 							break;
 						case CMD_SAMPLE_SEND:
-							// Interrompe a atualização do gráfico temporariamente
-							// para adicionar novos pontos
-							chtSignal->Series["Tensao1"]->Points->SuspendUpdates();
-							chtSignal->Series["Tensao2"]->Points->SuspendUpdates();
-							chtSignal->Series["Tensao3"]->Points->SuspendUpdates();
-
-							chtSignal->Series["Corrente1"]->Points->SuspendUpdates();
-							chtSignal->Series["Corrente2"]->Points->SuspendUpdates();
-							chtSignal->Series["Corrente3"]->Points->SuspendUpdates();
-
-							// Adicionando os pontos enviados
-							chtSignal->Series["Tensao1"]->Points->AddXY(amostra * TAXA_AMOSTRAGEM, ((BitConverter::ToUInt16(buffer, 1) / 1000.0f) - ZERO_VOLT_VALUE) * RELACAO_TRANSFORMACAO);
-							chtSignal->Series["Tensao2"]->Points->AddXY(amostra * TAXA_AMOSTRAGEM, ((BitConverter::ToUInt16(buffer, 3) / 1000.0f) - ZERO_VOLT_VALUE) * RELACAO_TRANSFORMACAO);
-							chtSignal->Series["Tensao3"]->Points->AddXY(amostra * TAXA_AMOSTRAGEM, ((BitConverter::ToUInt16(buffer, 5) / 1000.0f) - ZERO_VOLT_VALUE) * RELACAO_TRANSFORMACAO);
-
-							chtSignal->Series["Corrente1"]->Points->AddXY(amostra * TAXA_AMOSTRAGEM, BitConverter::ToUInt16(buffer, 7) / 1000.0f);
-							chtSignal->Series["Corrente2"]->Points->AddXY(amostra * TAXA_AMOSTRAGEM, BitConverter::ToUInt16(buffer, 9) / 1000.0f);
-							chtSignal->Series["Corrente3"]->Points->AddXY(amostra * TAXA_AMOSTRAGEM, BitConverter::ToUInt16(buffer, 11) / 1000.0f);
-
-							// Restaura a atualização do gráfico
-							chtSignal->Series["Tensao1"]->Points->ResumeUpdates();
-							chtSignal->Series["Tensao2"]->Points->ResumeUpdates();
-							chtSignal->Series["Tensao3"]->Points->ResumeUpdates();
-
-							chtSignal->Series["Corrente1"]->Points->ResumeUpdates();
-							chtSignal->Series["Corrente2"]->Points->ResumeUpdates();
-							chtSignal->Series["Corrente3"]->Points->ResumeUpdates();
-
+							analogVal = getSampleValueFromInt(safe_cast<UInt16>(buffer[1]) + safe_cast<UInt16>((buffer[2] & 0x0F) << 8), T1rel);
+							SamplesT1->Add(analogVal);
+							squaredValueSum[0] += analogVal * analogVal;
+							analogVal = getSampleValueFromInt(safe_cast<UInt16>((buffer[2] >> 4) & 0x0F) + safe_cast<UInt16>(buffer[3] << 4), T2rel);
+							SamplesT2->Add(analogVal);
+							squaredValueSum[1] += analogVal * analogVal;
+							analogVal = getSampleValueFromInt(safe_cast<UInt16>(buffer[4]) + safe_cast<UInt16>((buffer[5] & 0x0F) << 8), T3rel);
+							SamplesT3->Add(analogVal);
+							squaredValueSum[2] += analogVal * analogVal;
+							analogVal = getSampleValueFromInt(safe_cast<UInt16>((buffer[5] >> 4) & 0x0F) + safe_cast<UInt16>(buffer[6] << 4), TC1rel);
+							SamplesTC1->Add(analogVal);
+							squaredValueSum[3] += analogVal * analogVal;
+							analogVal = getSampleValueFromInt(safe_cast<UInt16>(buffer[7]) + safe_cast<UInt16>((buffer[8] & 0x0F) << 8), TC2rel);
+							SamplesTC2->Add(analogVal);
+							squaredValueSum[4] += analogVal * analogVal;
+							analogVal = getSampleValueFromInt(safe_cast<UInt16>((buffer[8] >> 4) & 0x0F) + safe_cast<UInt16>(buffer[9] << 4), TC3rel);
+							SamplesTC3->Add(analogVal);
+							squaredValueSum[5] += analogVal * analogVal;
 							amostra++;
+
+							if (amostra == 20 || (amostra % UPDATE_AT_SAMPLE) == 0)
+							{
+								double vrms, irms;
+								double samplingTime = TAXA_AMOSTRAGEM * amostra;
+								// Interrompe a atualização do gráfico temporariamente
+							    // para adicionar novos pontos
+								chtSignal->Series["Tensao1"]->Points->SuspendUpdates();
+								chtSignal->Series["Tensao2"]->Points->SuspendUpdates();
+								chtSignal->Series["Tensao3"]->Points->SuspendUpdates();
+
+								chtSignal->Series["Corrente1"]->Points->SuspendUpdates();
+								chtSignal->Series["Corrente2"]->Points->SuspendUpdates();
+								chtSignal->Series["Corrente3"]->Points->SuspendUpdates();
+
+								chtSignal->Series["Potencia1"]->Points->SuspendUpdates();
+								chtSignal->Series["Potencia2"]->Points->SuspendUpdates();
+								chtSignal->Series["Potencia3"]->Points->SuspendUpdates();
+
+								vrms = Math::Sqrt(squaredValueSum[0] / amostra);
+								irms = Math::Sqrt(squaredValueSum[3] / amostra);
+								chtSignal->Series["Tensao1"]->Points->AddXY(samplingTime,vrms);
+								chtSignal->Series["Corrente1"]->Points->AddXY(samplingTime,irms);
+								chtSignal->Series["Potencia1"]->Points->AddXY(samplingTime,vrms*irms);
+
+								vrms = Math::Sqrt(squaredValueSum[1] / amostra);
+								irms = Math::Sqrt(squaredValueSum[4] / amostra);
+								chtSignal->Series["Tensao2"]->Points->AddXY(samplingTime,vrms);
+								chtSignal->Series["Corrente2"]->Points->AddXY(samplingTime,irms);
+								chtSignal->Series["Potencia2"]->Points->AddXY(samplingTime,vrms * irms);
+								
+								vrms = Math::Sqrt(squaredValueSum[2] / amostra);
+								irms = Math::Sqrt(squaredValueSum[5] / amostra);
+								chtSignal->Series["Tensao3"]->Points->AddXY(samplingTime,vrms);
+								chtSignal->Series["Corrente3"]->Points->AddXY(samplingTime,irms);
+								chtSignal->Series["Potencia3"]->Points->AddXY(samplingTime,vrms * irms);
+
+								// Restaura a atualização do gráfico
+								chtSignal->Series["Tensao1"]->Points->ResumeUpdates();
+								chtSignal->Series["Tensao2"]->Points->ResumeUpdates();
+								chtSignal->Series["Tensao3"]->Points->ResumeUpdates();
+
+								chtSignal->Series["Corrente1"]->Points->ResumeUpdates();
+								chtSignal->Series["Corrente2"]->Points->ResumeUpdates();
+								chtSignal->Series["Corrente3"]->Points->ResumeUpdates();
+
+								chtSignal->Series["Potencia1"]->Points->ResumeUpdates();
+								chtSignal->Series["Potencia2"]->Points->ResumeUpdates();
+								chtSignal->Series["Potencia3"]->Points->ResumeUpdates();
+							}
 							break;
 						case CMD_GET_ADC_READING:
-							tmpFloat = BitConverter::ToUInt16(buffer, 1) / 1000.0f;
+							adcVal = BitConverter::ToUInt16(buffer, 1) * (3.3f/4096.0f);
+							analogVal = BitConverter::ToUInt16(buffer, 3) / 1000.0f;
 							
 							switch (cmboxADCSelection->SelectedIndex)
 							{
 								case 0:
-									lblAnalogReading->Text = String::Format("{0:F2} V", tmpFloat);
+									lblADCReadingValue->Text = String::Format("{0:F2} V", adcVal);
+									lblAnalogReading->Text = String::Format("{0:F2} V", analogVal);
 									break;
 								case 1:
-									lblAnalogReading->Text = String::Format("{0:F2} V", tmpFloat);
+									lblADCReadingValue->Text = String::Format("{0:F2} V", adcVal);
+									lblAnalogReading->Text = String::Format("{0:F2} V", analogVal);
 									break;
 								case 2:
-									lblAnalogReading->Text = String::Format("{0:F2} V", tmpFloat);
+									lblADCReadingValue->Text = String::Format("{0:F2} V", adcVal);
+									lblAnalogReading->Text = String::Format("{0:F2} V", analogVal);
 									break;
 								case 3:
-									lblAnalogReading->Text = String::Format("{0:F2} A", tmpFloat);
+									lblADCReadingValue->Text = String::Format("{0:F2} V", adcVal);
+									lblAnalogReading->Text = String::Format("{0:F2} V", analogVal);
 									break;
 								case 4:
-									lblAnalogReading->Text = String::Format("{0:F2} A", tmpFloat);
+									lblADCReadingValue->Text = String::Format("{0:F2} V", adcVal);
+									lblAnalogReading->Text = String::Format("{0:F2} V", analogVal);
 									break;
 								case 5:
-									lblAnalogReading->Text = String::Format("{0:F2} A", tmpFloat);
+									lblADCReadingValue->Text = String::Format("{0:F2} V", adcVal);
+									lblAnalogReading->Text = String::Format("{0:F2} V", analogVal);
 									break;
 							}
 							break;
@@ -736,6 +1607,14 @@ namespace BaseProject
 					}
 				}
 			}
+
+			float getSampleValueFromInt(UInt16 value, float convertionRate)
+			{
+				float result = safe_cast<float>(Math::Round(((value / 1000.0f) - ZERO_VOLT_VALUE) * convertionRate, 2));
+				
+				return(result);
+			}
+
 			System::Void DisconnectionHandler(Object ^eqp)
 			{
 				if (btnConnect->InvokeRequired)
@@ -762,25 +1641,23 @@ namespace BaseProject
 					lblAnalogReading->Enabled = false;
 				}
 			}
+
 			System::Void btnSendEcho_Click(System::Object^  sender, System::EventArgs^  e)
 			{
 				if (device->Connected)
 				{
-					array<unsigned char>^buffer = gcnew array<unsigned char>(txtSendMessage->Text->Length + 5);
+					array<unsigned char>^buffer = gcnew array<unsigned char>(txtSendMessage->Text->Length + 4);
 					array<unsigned char>^message = Encoding::ASCII->GetBytes(txtSendMessage->Text);
-					array<unsigned char>^ convertArray;
 
 					buffer[0] = 0xAA;
 					buffer[1] = 0x55;
 					// Tamanho do campo de dados
-					convertArray = BitConverter::GetBytes(txtSendMessage->Text->Length + 1);
-					buffer[2] = convertArray[0];
-					buffer[3] = convertArray[1];
+					buffer[2] = safe_cast<unsigned char>(txtSendMessage->Text->Length + 1);
 					// Comando
-					buffer[4] = CMD_SEND_ECHO;
+					buffer[3] = CMD_SEND_ECHO;
 					// Texto para envio
 					for (int i = 0; i < message->Length; i++)
-						buffer[5 + i] = message[i];
+						buffer[4 + i] = message[i];
 
 					try
 					{
@@ -792,31 +1669,32 @@ namespace BaseProject
 					}
 				}
 			}
+
 			System::Void MainForm_FormClosed(System::Object^  sender, System::Windows::Forms::FormClosedEventArgs^  e) 
 			{
 				device->Close();
 				device = nullptr;
 			}
+
 			System::Void btnGetSamples_Click(System::Object^  sender, System::EventArgs^  e) 
 			{
 				if (device->Connected)
 				{
-					array<unsigned char>^buffer = gcnew array<unsigned char>(6);
+					array<unsigned char>^buffer = gcnew array<unsigned char>(5);
+					squaredValueSum = gcnew array<double>(6);
 					amostra = 0;
 
 					buffer[0] = 0xAA;
 					buffer[1] = 0x55;
 					// Tamanho do campo de dados
 					buffer[2] = 0x02;
-					buffer[3] = 0x00;
 					// Comando
-					buffer[4] = CMD_SET_SAMPLING_STATE;
-					buffer[5] = (btnGetSamples->Text == "Adquirir amostras") ? 1 : 0;
+					buffer[3] = CMD_SET_SAMPLING_STATE;
+					buffer[4] = 1;
 
 					try
 					{
 						device->Write(buffer, 0, buffer->Length);
-						btnGetSamples->Text = (btnGetSamples->Text == "Adquirir amostras") ? "Parar amostragem" : "Adquirir amostras";
 					}
 					catch (IOException ^)
 					{
@@ -824,22 +1702,22 @@ namespace BaseProject
 					}
 				}
 			}
+
 			System::Void btnLeitura_Click(System::Object^  sender, System::EventArgs^  e) 
 			{
 				if (cmboxADCSelection->SelectedIndex != -1)
 				{
 					if (device->Connected)
 					{
-						array<unsigned char>^ buffer = gcnew array<unsigned char>(6);
+						array<unsigned char>^ buffer = gcnew array<unsigned char>(5);
 
 						buffer[0] = 0xAA;
 						buffer[1] = 0x55;
 						// Tamanho do campo de dados
 						buffer[2] = 0x02;
-						buffer[3] = 0x00;
 						// Comando
-						buffer[4] = CMD_GET_ADC_READING;
-						buffer[5] = safe_cast<Byte>(cmboxADCSelection->SelectedIndex);
+						buffer[3] = CMD_GET_ADC_READING;
+						buffer[4] = safe_cast<Byte>(cmboxADCSelection->SelectedIndex);
 
 						try
 						{
@@ -856,6 +1734,7 @@ namespace BaseProject
 					MessageBox::Show("Selecinar um ADC para leitura", "Erro", MessageBoxButtons::OK, MessageBoxIcon::Exclamation);
 				}
 			}
+
 			System::Void btnClear_Click(System::Object^ sender, System::EventArgs^ e) 
 			{
 				chtSignal->Series["Tensao1"]->Points->Clear();
@@ -865,34 +1744,290 @@ namespace BaseProject
 				chtSignal->Series["Corrente1"]->Points->Clear();
 				chtSignal->Series["Corrente2"]->Points->Clear();
 				chtSignal->Series["Corrente3"]->Points->Clear();
+
+				SamplesT1 = gcnew BindingList<float>();
+				SamplesT2 = gcnew BindingList<float>();
+				SamplesT3 = gcnew BindingList<float>();
+				SamplesTC1 = gcnew BindingList<float>();
+				SamplesTC2 = gcnew BindingList<float>();
+				SamplesTC3 = gcnew BindingList<float>();
+
+				if (device != nullptr)
+				{
+					device->Clear();
+				}
 			}
+
 			System::Void btnTxtClear_Click(System::Object^ sender, System::EventArgs^ e) 
 			{
 				txtMessages->Clear();
 			}
+
 			System::Void cbxTensao1_CheckedChanged(System::Object^ sender, System::EventArgs^ e) 
 			{
 				chtSignal->Series["Tensao1"]->Enabled = cbxTensao1->Checked;
 			}
+
 			System::Void cbxCorrente1_CheckedChanged(System::Object^ sender, System::EventArgs^ e) 
 			{
 				chtSignal->Series["Corrente1"]->Enabled = cbxCorrente1->Checked;
 			}
+
 			System::Void cbxTensao2_CheckedChanged(System::Object^ sender, System::EventArgs^ e) 
 			{
 				chtSignal->Series["Tensao2"]->Enabled = cbxTensao2->Checked;
 			}
+
 			System::Void cbxCorrente2_CheckedChanged(System::Object^ sender, System::EventArgs^ e) 
 			{
 				chtSignal->Series["Corrente2"]->Enabled = cbxCorrente2->Checked;
 			}
+
 			System::Void cbxTensao3_CheckedChanged(System::Object^ sender, System::EventArgs^ e) 
 			{
 				chtSignal->Series["Tensao3"]->Enabled = cbxTensao3->Checked;
 			}
+
 			System::Void cbxCorrente3_CheckedChanged(System::Object^ sender, System::EventArgs^ e) 
 			{
 				chtSignal->Series["Corrente3"]->Enabled = cbxCorrente3->Checked;
+			}
+
+			System::Void cbxPotencia1_CheckedChanged(System::Object^ sender, System::EventArgs^ e)
+			{
+				chtSignal->Series["Potencia1"]->Enabled = cbxPotencia1->Checked;
+			}
+
+			System::Void cbxPotencia2_CheckedChanged(System::Object^ sender, System::EventArgs^ e)
+			{
+				chtSignal->Series["Potencia2"]->Enabled = cbxPotencia2->Checked;
+			}
+
+			System::Void cbxPotencia3_CheckedChanged(System::Object^ sender, System::EventArgs^ e)
+			{
+				chtSignal->Series["Potencia3"]->Enabled = cbxPotencia3->Checked;
+			}
+
+			System::Void VoltageSensor1_ChangeValues(System::Object^ sender, System::Windows::Forms::KeyPressEventArgs^ e) 
+			{
+				if (e->KeyChar == 13)
+				{
+					T1rel = getVoltageSensorRate(txtPrimarioT1, txtSecundarioT1, txtRes6, txtRes7);
+					
+					saveTxtToConfig(txtPrimarioT1);
+					saveTxtToConfig(txtSecundarioT1);
+					saveTxtToConfig(txtRes6);
+					saveTxtToConfig(txtRes7);
+				}
+			}
+
+			System::Void VoltageSensor1_ChangeValues(System::Object^ sender, System::EventArgs^ e)
+			{
+				float tempValue = getVoltageSensorRate(txtPrimarioT1, txtSecundarioT1, txtRes6, txtRes7);
+
+				if (Math::Abs(tempValue - T1rel) >= 0.1f)
+				{
+					T1rel = tempValue;
+					saveTxtToConfig(txtPrimarioT1);
+					saveTxtToConfig(txtSecundarioT1);
+					saveTxtToConfig(txtRes6);
+					saveTxtToConfig(txtRes7);
+				}
+			}
+
+			System::Void VoltageSensor2_ChangeValues(System::Object^ sender, System::Windows::Forms::KeyPressEventArgs^ e)
+			{
+				if (e->KeyChar == 13)
+				{
+					T2rel = getVoltageSensorRate(txtPrimarioT2, txtSecundarioT2, txtRes8, txtRes9);
+
+					saveTxtToConfig(txtPrimarioT2);
+					saveTxtToConfig(txtSecundarioT2);
+					saveTxtToConfig(txtRes8);
+					saveTxtToConfig(txtRes9);
+				}
+			}
+
+			System::Void VoltageSensor2_ChangeValues(System::Object^ sender, System::EventArgs^ e)
+			{
+				float tempValue = getVoltageSensorRate(txtPrimarioT2, txtSecundarioT2, txtRes8, txtRes9);
+
+				if (Math::Abs(tempValue - T2rel) >= 0.1f)
+				{
+					T2rel = tempValue;
+					saveTxtToConfig(txtPrimarioT2);
+					saveTxtToConfig(txtSecundarioT2);
+					saveTxtToConfig(txtRes8);
+					saveTxtToConfig(txtRes9);
+				}
+			}
+
+			System::Void VoltageSensor3_ChangeValues(System::Object^ sender, System::Windows::Forms::KeyPressEventArgs^ e)
+			{
+				if (e->KeyChar == 13)
+				{
+					T3rel = getVoltageSensorRate(txtPrimarioT3, txtSecundarioT3, txtRes10, txtRes11);
+
+					saveTxtToConfig(txtPrimarioT3);
+					saveTxtToConfig(txtSecundarioT3);
+					saveTxtToConfig(txtRes10);
+					saveTxtToConfig(txtRes11);
+				}
+			}
+
+			System::Void VoltageSensor3_ChangeValues(System::Object^ sender, System::EventArgs^ e)
+			{
+				float tempValue = T3rel = getVoltageSensorRate(txtPrimarioT3, txtSecundarioT3, txtRes10, txtRes11);
+
+				if (Math::Abs(tempValue - T3rel) >= 0.1f)
+				{
+					T3rel = tempValue;
+					saveTxtToConfig(txtPrimarioT3);
+					saveTxtToConfig(txtSecundarioT3);
+					saveTxtToConfig(txtRes10);
+					saveTxtToConfig(txtRes11);
+				}
+			}
+
+			System::Void CurrentSensor1_ChangeValues(System::Object^ sender, System::Windows::Forms::KeyPressEventArgs^ e)
+			{
+				if (e->KeyChar == 13)
+				{
+					TC1rel = getCurrentSensorRate(txtPrimarioTC1, txtSecundarioTC1, txtRes1);
+
+					saveTxtToConfig(txtPrimarioTC1);
+					saveTxtToConfig(txtSecundarioTC1);
+					saveTxtToConfig(txtRes1);
+				}
+			}
+
+			System::Void CurrentSensor1_ChangeValues(System::Object^ sender, System::EventArgs^ e)
+			{
+				float tempValue = getCurrentSensorRate(txtPrimarioTC1, txtSecundarioTC1, txtRes1);
+
+				if (Math::Abs(tempValue - TC1rel) >= 0.1f)
+				{
+					TC1rel = tempValue;
+					saveTxtToConfig(txtPrimarioTC1);
+					saveTxtToConfig(txtSecundarioTC1);
+					saveTxtToConfig(txtRes1);
+				}
+			}
+
+			System::Void CurrentSensor2_ChangeValues(System::Object^ sender, System::Windows::Forms::KeyPressEventArgs^ e)
+			{
+				if (e->KeyChar == 13)
+				{
+					TC2rel = getCurrentSensorRate(txtPrimarioTC2, txtSecundarioTC2, txtRes2);
+
+					saveTxtToConfig(txtPrimarioTC2);
+					saveTxtToConfig(txtSecundarioTC2);
+					saveTxtToConfig(txtRes2);
+				}
+			}
+
+			System::Void CurrentSensor2_ChangeValues(System::Object^ sender, System::EventArgs^ e)
+			{
+				float tempValue = getCurrentSensorRate(txtPrimarioTC2, txtSecundarioTC2, txtRes2);
+
+				if (Math::Abs(tempValue - TC2rel) >= 0.1f)
+				{
+					TC2rel = tempValue;
+					saveTxtToConfig(txtPrimarioTC2);
+					saveTxtToConfig(txtSecundarioTC2);
+					saveTxtToConfig(txtRes2);
+				}
+			}
+
+			System::Void CurrentSensor3_ChangeValues(System::Object^ sender, System::Windows::Forms::KeyPressEventArgs^ e)
+			{
+				if (e->KeyChar == 13)
+				{
+					TC3rel = getCurrentSensorRate(txtPrimarioTC3, txtSecundarioTC3, txtRes3);
+
+					saveTxtToConfig(txtPrimarioTC3);
+					saveTxtToConfig(txtSecundarioTC3);
+					saveTxtToConfig(txtRes3);
+				}
+			}
+
+			System::Void CurrentSensor3_ChangeValues(System::Object^ sender, System::EventArgs^ e)
+			{
+				float tempValue = getCurrentSensorRate(txtPrimarioTC3, txtSecundarioTC3, txtRes3);
+
+				if (Math::Abs(tempValue - TC3rel) >= 0.1f)
+				{
+					TC3rel = tempValue;
+					saveTxtToConfig(txtPrimarioTC3);
+					saveTxtToConfig(txtSecundarioTC3);
+					saveTxtToConfig(txtRes3);
+				}
+			}
+
+			float getVoltageSensorRate(TextBox^ txtPrimary, TextBox^ txtSecondary, TextBox^ txtResMajor, TextBox^ txtResMinor)
+			{
+				float tranformerRelation, divisionRelation;
+
+				try
+				{
+					tranformerRelation = Convert::ToSingle(txtSecondary->Text) / Convert::ToSingle(txtPrimary->Text);
+					divisionRelation = (Convert::ToSingle(txtResMajor->Text) + Convert::ToSingle(txtResMinor->Text)) / Convert::ToSingle(txtResMinor->Text);
+				}
+				catch (...)
+				{
+					tranformerRelation = divisionRelation = 1.0f;
+				}
+
+				return(tranformerRelation * divisionRelation);
+			}
+
+			float getCurrentSensorRate(TextBox^ txtPrimary, TextBox^ txtSecondary, TextBox^ txtRes)
+			{
+				float convertionRelation;
+
+				try
+				{
+					convertionRelation = Convert::ToSingle(txtSecondary->Text) / (Convert::ToSingle(txtPrimary->Text) * Convert::ToSingle(txtRes->Text));
+				}
+				catch (...)
+				{
+					convertionRelation = 1.0f;
+				}
+
+				return(convertionRelation);
+			}
+
+			System::Void btnSave_Click(System::Object^ sender, System::EventArgs^ e) 
+			{
+				if (dlgSaveCSV->ShowDialog() == System::Windows::Forms::DialogResult::OK)
+				{
+					String^ header = gcnew String("Tempo;Tensao1;Tensao2;Tensao3;Corrente1;Corrente2;Corrente3;Potencia instantanea 1;Potencia instantanea 2;Potencia instantanea 3\r\n");
+					String^ csvBody = gcnew String("");
+					String^ csvResult = gcnew String("");
+					Encoding^ u8 = Encoding::UTF8;
+					FileStream^ analiseFile;
+					BinaryWriter^ writeFile;
+					int size = SamplesT1->Count;
+
+					size = (size > SamplesT2->Count) ? SamplesT2->Count : size;
+					size = (size > SamplesT3->Count) ? SamplesT3->Count : size;
+					size = (size > SamplesTC1->Count) ? SamplesTC1->Count : size;
+					size = (size > SamplesTC2->Count) ? SamplesTC2->Count : size;
+					size = (size > SamplesTC3->Count) ? SamplesTC3->Count : size;
+					for (int pointer = 0; pointer < size; pointer += 8)
+					{
+						csvBody += String::Format("{0};", pointer);
+						csvBody += String::Format("{0};{1};{2};", SamplesT1[pointer], SamplesT2[pointer], SamplesT3[pointer]);
+						csvBody += String::Format("{0};{1};{2};", SamplesTC1[pointer], SamplesTC2[pointer], SamplesTC3[pointer]);
+						csvBody += String::Format("{0};{1};{2};\r\n", SamplesT1[pointer]*SamplesTC1[pointer], SamplesT2[pointer]*SamplesTC2[pointer], SamplesT3[pointer]*SamplesTC3[pointer]);
+					}
+
+					csvResult = header + csvBody;
+					analiseFile = gcnew FileStream(dlgSaveCSV->FileName, FileMode::Create);
+					writeFile = gcnew BinaryWriter(analiseFile);
+					writeFile->Write(u8->GetBytes(csvResult));
+					analiseFile->Close();
+				}
 			}
 };
 }
