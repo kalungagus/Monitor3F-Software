@@ -13,6 +13,10 @@
 #define CMD_SEND_ECHO            0x83
 #define CMD_GET_ADC_READING      0x84
 #define CMD_SAMPLE_SEND          0x85
+#define CMD_SEND_SSID            0x86
+#define CMD_GET_SSID             0x87
+#define CMD_SEND_PASSWORD        0x88
+#define CMD_GET_PASSWORD         0x89
 
 //***************************************************************************************
 // Classes
@@ -185,58 +189,6 @@ namespace Modules
 						return;
 					}
 				}
-			}
-	};
-
-	public ref class Pin
-	{
-		protected:
-			String ^name;
-			int id;
-		public:
-			Pin(int i) 
-			{ 
-				array<unsigned char>^ convertArray;
-
-				id = i;
-				convertArray = BitConverter::GetBytes(i);
-				switch (convertArray[1])
-				{
-					case 0x00:
-						name = String::Format("RA{0}", convertArray[0]);
-						break;
-					case 0x01:
-						name = String::Format("RB{0}", convertArray[0]);
-						break;
-					case 0x02:
-						name = String::Format("RC{0}", convertArray[0]);
-						break;
-					case 0x03:
-						name = String::Format("RD{0}", convertArray[0]);
-						break;
-					case 0x04:
-						name = String::Format("RE{0}", convertArray[0]);
-						break;
-					case 0x05:
-						name = String::Format("RF{0}", convertArray[0]);
-						break;
-					case 0x06:
-						name = String::Format("RG{0}", convertArray[0]);
-						break;
-					default:
-						break;
-				}
-			};
-			property int ID
-			{
-				virtual int get(void)
-				{
-					return(id);
-				}
-			}
-			String ^ToString(void) override
-			{
-				return(name);
 			}
 	};
 }
