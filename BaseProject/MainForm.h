@@ -1898,6 +1898,12 @@ private: System::Windows::Forms::TextBox^ txtRefT1;
 				loadChkBoxIfConfigExists(cbxPotencia2);
 				loadChkBoxIfConfigExists(cbxPotencia3);
 
+				loadTxtIfConfigExists(txtIP1);
+				loadTxtIfConfigExists(txtIP2);
+				loadTxtIfConfigExists(txtIP3);
+				loadTxtIfConfigExists(txtIP4);
+				loadTxtIfConfigExists(txtPort);
+
 				loadNumUpDownIfConfigExists(nudSamplesQty);
 
 				SamplesT1 = gcnew BindingList<float>();
@@ -2010,6 +2016,12 @@ private: System::Windows::Forms::TextBox^ txtRefT1;
 					}
 					if (tcpDevice->Connected)
 					{
+						saveTxtToConfig(txtIP1);
+						saveTxtToConfig(txtIP2);
+						saveTxtToConfig(txtIP3);
+						saveTxtToConfig(txtIP4);
+						saveTxtToConfig(txtPort);
+
 						setInterfaceState();
 					}
 				}
@@ -2078,6 +2090,12 @@ private: System::Windows::Forms::TextBox^ txtRefT1;
 					}
 					if (tcpDevice->Connected)
 					{
+						saveTxtToConfig(txtIP1);
+						saveTxtToConfig(txtIP2);
+						saveTxtToConfig(txtIP3);
+						saveTxtToConfig(txtIP4);
+						saveTxtToConfig(txtPort);
+
 						setInterfaceState();
 					}
 				}
