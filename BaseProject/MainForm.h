@@ -205,6 +205,11 @@ private: System::Windows::Forms::TextBox^ txtRefT2;
 
 private: System::Windows::Forms::Label^ lblRefT1;
 private: System::Windows::Forms::TextBox^ txtRefT1;
+private: System::Windows::Forms::GroupBox^ gbxButtonSamples;
+private: System::Windows::Forms::Label^ lblButtonSamples;
+private: System::Windows::Forms::TextBox^ txtButtonSamples;
+private: System::Windows::Forms::Button^ btnButtonSamples;
+
 
 
 
@@ -287,6 +292,10 @@ private: System::Windows::Forms::TextBox^ txtRefT1;
 			this->btnClear = (gcnew System::Windows::Forms::Button());
 			this->btnGetSamples = (gcnew System::Windows::Forms::Button());
 			this->tabCommonCmd = (gcnew System::Windows::Forms::TabPage());
+			this->gbxButtonSamples = (gcnew System::Windows::Forms::GroupBox());
+			this->lblButtonSamples = (gcnew System::Windows::Forms::Label());
+			this->txtButtonSamples = (gcnew System::Windows::Forms::TextBox());
+			this->btnButtonSamples = (gcnew System::Windows::Forms::Button());
 			this->gbxEcho = (gcnew System::Windows::Forms::GroupBox());
 			this->lblEcho = (gcnew System::Windows::Forms::Label());
 			this->txtSendMessage = (gcnew System::Windows::Forms::TextBox());
@@ -369,6 +378,7 @@ private: System::Windows::Forms::TextBox^ txtRefT1;
 			this->gpbxDAQControl->SuspendLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->nudSamplesQty))->BeginInit();
 			this->tabCommonCmd->SuspendLayout();
+			this->gbxButtonSamples->SuspendLayout();
 			this->gbxEcho->SuspendLayout();
 			this->gbxInstReading->SuspendLayout();
 			this->tabConfig->SuspendLayout();
@@ -1003,6 +1013,7 @@ private: System::Windows::Forms::TextBox^ txtRefT1;
 			// tabCommonCmd
 			// 
 			this->tabCommonCmd->BackColor = System::Drawing::SystemColors::Control;
+			this->tabCommonCmd->Controls->Add(this->gbxButtonSamples);
 			this->tabCommonCmd->Controls->Add(this->gbxEcho);
 			this->tabCommonCmd->Controls->Add(this->gbxInstReading);
 			this->tabCommonCmd->Location = System::Drawing::Point(4, 25);
@@ -1012,12 +1023,59 @@ private: System::Windows::Forms::TextBox^ txtRefT1;
 			this->tabCommonCmd->TabIndex = 2;
 			this->tabCommonCmd->Text = L"Comandos comuns";
 			// 
+			// gbxButtonSamples
+			// 
+			this->gbxButtonSamples->Anchor = static_cast<System::Windows::Forms::AnchorStyles>(((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Left)
+				| System::Windows::Forms::AnchorStyles::Right));
+			this->gbxButtonSamples->Controls->Add(this->lblButtonSamples);
+			this->gbxButtonSamples->Controls->Add(this->txtButtonSamples);
+			this->gbxButtonSamples->Controls->Add(this->btnButtonSamples);
+			this->gbxButtonSamples->Location = System::Drawing::Point(8, 182);
+			this->gbxButtonSamples->Name = L"gbxButtonSamples";
+			this->gbxButtonSamples->Size = System::Drawing::Size(896, 64);
+			this->gbxButtonSamples->TabIndex = 31;
+			this->gbxButtonSamples->TabStop = false;
+			this->gbxButtonSamples->Text = L"Amostras padrão para botão";
+			// 
+			// lblButtonSamples
+			// 
+			this->lblButtonSamples->AutoSize = true;
+			this->lblButtonSamples->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 9.75F, System::Drawing::FontStyle::Regular,
+				System::Drawing::GraphicsUnit::Point, static_cast<System::Byte>(0)));
+			this->lblButtonSamples->Location = System::Drawing::Point(7, 28);
+			this->lblButtonSamples->Margin = System::Windows::Forms::Padding(4, 0, 4, 0);
+			this->lblButtonSamples->Name = L"lblButtonSamples";
+			this->lblButtonSamples->Size = System::Drawing::Size(503, 20);
+			this->lblButtonSamples->TabIndex = 29;
+			this->lblButtonSamples->Text = L"Quantidade de amostras enviadas ao pressionar botão do módulo:";
+			// 
+			// txtButtonSamples
+			// 
+			this->txtButtonSamples->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
+			this->txtButtonSamples->Location = System::Drawing::Point(664, 25);
+			this->txtButtonSamples->Margin = System::Windows::Forms::Padding(4);
+			this->txtButtonSamples->Name = L"txtButtonSamples";
+			this->txtButtonSamples->Size = System::Drawing::Size(112, 22);
+			this->txtButtonSamples->TabIndex = 27;
+			// 
+			// btnButtonSamples
+			// 
+			this->btnButtonSamples->Anchor = static_cast<System::Windows::Forms::AnchorStyles>((System::Windows::Forms::AnchorStyles::Top | System::Windows::Forms::AnchorStyles::Right));
+			this->btnButtonSamples->Location = System::Drawing::Point(787, 22);
+			this->btnButtonSamples->Margin = System::Windows::Forms::Padding(4);
+			this->btnButtonSamples->Name = L"btnButtonSamples";
+			this->btnButtonSamples->Size = System::Drawing::Size(100, 28);
+			this->btnButtonSamples->TabIndex = 28;
+			this->btnButtonSamples->Text = L"Enviar";
+			this->btnButtonSamples->UseVisualStyleBackColor = true;
+			this->btnButtonSamples->Click += gcnew System::EventHandler(this, &MainForm::btnButtonSamples_Click);
+			// 
 			// gbxEcho
 			// 
 			this->gbxEcho->Controls->Add(this->lblEcho);
 			this->gbxEcho->Controls->Add(this->txtSendMessage);
 			this->gbxEcho->Controls->Add(this->btnSendEcho);
-			this->gbxEcho->Location = System::Drawing::Point(8, 182);
+			this->gbxEcho->Location = System::Drawing::Point(8, 301);
 			this->gbxEcho->Name = L"gbxEcho";
 			this->gbxEcho->Size = System::Drawing::Size(896, 71);
 			this->gbxEcho->TabIndex = 30;
@@ -1076,7 +1134,7 @@ private: System::Windows::Forms::TextBox^ txtRefT1;
 			this->gbxInstReading->Size = System::Drawing::Size(896, 173);
 			this->gbxInstReading->TabIndex = 29;
 			this->gbxInstReading->TabStop = false;
-			this->gbxInstReading->Text = L"Leitura instantânea";
+			this->gbxInstReading->Text = L"Comandos gerais";
 			// 
 			// btnReset
 			// 
@@ -1816,6 +1874,8 @@ private: System::Windows::Forms::TextBox^ txtRefT1;
 			this->gpbxDAQControl->PerformLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->nudSamplesQty))->EndInit();
 			this->tabCommonCmd->ResumeLayout(false);
+			this->gbxButtonSamples->ResumeLayout(false);
+			this->gbxButtonSamples->PerformLayout();
 			this->gbxEcho->ResumeLayout(false);
 			this->gbxEcho->PerformLayout();
 			this->gbxInstReading->ResumeLayout(false);
@@ -1903,6 +1963,8 @@ private: System::Windows::Forms::TextBox^ txtRefT1;
 				loadTxtIfConfigExists(txtIP3);
 				loadTxtIfConfigExists(txtIP4);
 				loadTxtIfConfigExists(txtPort);
+
+				loadTxtIfConfigExists(txtButtonSamples);
 
 				loadNumUpDownIfConfigExists(nudSamplesQty);
 
@@ -2129,7 +2191,7 @@ private: System::Windows::Forms::TextBox^ txtRefT1;
 					btnClear->Enabled = true;
 					btnSave->Enabled = true;
 					btnReset->Enabled = true;
-
+					gbxButtonSamples->Enabled = true;
 				}
 				else
 				{
@@ -2150,6 +2212,7 @@ private: System::Windows::Forms::TextBox^ txtRefT1;
 					btnClear->Enabled = false;
 					btnSave->Enabled = false;
 					btnReset->Enabled = false;
+					gbxButtonSamples->Enabled = false;
 				}
 
 				if (deviceState)
@@ -3144,6 +3207,54 @@ private: System::Windows::Forms::TextBox^ txtRefT1;
 					TC3ref = getFloatFromTxBox(txtRefTC3);
 
 					saveTxtToConfig(txtRefTC3);
+				}
+			}
+
+			System::Void btnButtonSamples_Click(System::Object^ sender, System::EventArgs^ e) 
+			{
+				Module^ priorityDevice;
+				array<unsigned char>^ tempByteArray;
+
+				if (device != nullptr && device->Connected)
+					priorityDevice = device;
+				if (tcpDevice != nullptr && tcpDevice->Connected)
+					priorityDevice = tcpDevice;
+
+				if (priorityDevice != nullptr && priorityDevice->Connected)
+				{
+					array<unsigned char>^ buffer = gcnew array<unsigned char>(6);
+					UInt16 quantSamples;
+
+					buffer[0] = 0xAA;
+					buffer[1] = 0x55;
+					// Tamanho do campo de dados
+					buffer[2] = 0x03;
+					// Comando
+					buffer[3] = CMD_SET_BUTTON_SAMPLES;
+
+					try
+					{
+						quantSamples = Convert::ToUInt16(txtButtonSamples->Text);
+					}
+					catch (...)
+					{
+						quantSamples = 500;
+					}
+
+					tempByteArray = BitConverter::GetBytes(quantSamples);
+					buffer[4] = tempByteArray[0];
+					buffer[5] = tempByteArray[1];
+
+					try
+					{
+						priorityDevice->Write(buffer, 0, buffer->Length);
+					}
+					catch (IOException^)
+					{
+						MessageBox::Show("Mensagem não pôde ser enviada", "Erro", MessageBoxButtons::OK, MessageBoxIcon::Exclamation);
+					}
+
+					saveTxtToConfig(txtButtonSamples);
 				}
 			}
 };
